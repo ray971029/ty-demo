@@ -72,7 +72,28 @@
   #right-stack .panel{position:static;pointer-events:auto;}
   #readout{padding:12px 14px;width:206px;font-family:'JetBrains Mono',monospace;font-size:11.5px;}
   #readout.collapsed{width:auto;}
-  #legend{padding:10px 14px;width:206px;font-size:12px;}
+  #top-btns{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:600;}
+  .sq-btn{position:relative;width:46px;height:46px;border-radius:12px;border:1px solid rgba(127,211,220,0.28);background:rgba(18,26,30,0.92);color:#7fd3dc;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;box-shadow:0 2px 10px rgba(0,0,0,0.45);}
+  .sq-btn:hover{background:rgba(30,42,48,0.96);}
+  .sq-btn:focus-visible{outline:2px solid var(--cone-amber);outline-offset:2px;}
+  .sq-btn.on{background:#7fd3dc;color:#10181c;}
+  .sq-btn svg{width:26px;height:26px;}
+  #layers-btn .badge{position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;background:#7fd3dc;border:2px solid #10181c;}
+  #pen-bar{position:absolute;top:72px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:8px;padding:8px 10px;z-index:590;background:rgba(18,26,30,0.94);border:1px solid rgba(127,211,220,0.28);border-radius:12px;}
+  #pen-bar.open{display:flex;}
+  #pen-bar .pc{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;}
+  #pen-bar .pc.sel{border-color:#fff;}
+  #pen-bar .pb{background:transparent;border:1px solid rgba(127,211,220,0.35);color:#cfeff3;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit;}
+  #pen-bar .pb:hover{background:rgba(127,211,220,0.15);}
+  #map.pen-mode{cursor:crosshair;touch-action:none;}
+  #legend{position:absolute;top:72px;left:50%;transform:translateX(-50%);padding:10px 14px;width:min(290px,90vw);max-height:calc(100vh - 190px);overflow-y:auto;font-size:12px;z-index:600;display:none;}
+  #legend.open{display:block;}
+  @media (max-width:760px){
+    #top-btns{left:auto;right:16px;transform:none;}
+    #legend,#pen-bar{left:auto;right:16px;transform:none;}
+    #right-stack{top:72px;}
+    #title-bar{max-width:calc(100vw - 100px);}
+  }
   #readout .r-time{color:var(--cone-amber);font-weight:700;font-size:13px;margin-bottom:8px;}
   #readout .r-row{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid rgba(255,255,255,0.06);color:var(--signal-dim);}
   #readout .r-row span:last-child{color:var(--signal-white);text-align:right;}
@@ -80,7 +101,6 @@
 
   #legend .leg-title{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:0.1em;color:var(--data-teal);}
   #legend #legend-collapsible{margin-top:8px;}
-  #legend.collapsed{width:auto;}
   .leg-item{display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;user-select:none;color:var(--signal-dim);}
   .leg-item input{accent-color:var(--cone-amber);}
   .leg-item.active{color:var(--signal-white);}
@@ -148,16 +168,37 @@
     </div>
   </div>
 
+  </div>
+
+  <div id="top-btns">
+    <button id="pen-btn" class="sq-btn" aria-label="畫筆" aria-pressed="false" title="畫筆（使用時地圖鎖定不能拖動，仍可縮放）">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L17 4l3 3L8 19z"/><path d="M14.5 6.5l3 3"/></svg>
+    </button>
+    <button id="layers-btn" class="sq-btn" aria-label="圖層" aria-expanded="false" aria-controls="legend" title="圖層">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M3 6h8M17 6h4M3 12h3M12 12h9M3 18h10M19 18h2"/><path d="M14 3.5v5M9 9.5v5M16 15.5v5" stroke-width="3"/></svg>
+      <span class="badge"></span>
+    </button>
+  </div>
+  <div id="pen-bar" role="toolbar" aria-label="畫筆工具">
+    <button class="pc sel" data-c="#ff4d4d" style="background:#ff4d4d" aria-label="紅"></button>
+    <button class="pc" data-c="#ffd23f" style="background:#ffd23f" aria-label="黃"></button>
+    <button class="pc" data-c="#4dd2ff" style="background:#4dd2ff" aria-label="青"></button>
+    <button class="pc" data-c="#7dff7d" style="background:#7dff7d" aria-label="綠"></button>
+    <button class="pc" data-c="#ffffff" style="background:#ffffff" aria-label="白"></button>
+    <button class="pb" id="pen-undo">復原</button>
+    <button class="pb" id="pen-clear">清除</button>
+  </div>
   <div id="legend" class="panel">
     <div class="panel-topbar">
       <div class="leg-title">圖層 LAYERS</div>
-      <button id="legend-toggle" class="collapse-btn" title="收合/展開">▾</button>
     </div>
     <div id="legend-collapsible">
       <label class="leg-item active"><input type="checkbox" id="lyr-track" checked><span class="swatch" style="background:var(--signal-white)"></span>路徑（依強度變色）</label>
       <label class="leg-item active"><input type="checkbox" id="lyr-storm" checked><span class="swatch" style="background:linear-gradient(90deg,#e8462f 50%,#a855f7 50%)"></span>暴風圈（7級風紅／10級風紫）</label>
       <label class="leg-item active"><input type="checkbox" id="lyr-cone" checked><span class="swatch" style="background:var(--cone-amber)"></span>70% 機率潛勢圓錐</label>
       <label class="leg-item"><input type="checkbox" id="lyr-forecast-mode"><span class="swatch" style="background:#a855f7"></span>預報模式（顯示所有預報點）</label>
+      <label class="leg-item active"><input type="checkbox" id="lyr-sea-warn" checked><span class="swatch" style="background:repeating-linear-gradient(90deg,#ffb02e 0 5px,transparent 5px 8px)"></span>海上警報範圍線（距陸地 100 公里）</label>
+      <label class="leg-item active"><input type="checkbox" id="lyr-county-hit" checked><span class="swatch" style="background:linear-gradient(90deg,#1e40af 50%,#facc15 50%)"></span>縣市受暴風圈影響（7級深藍／10級黃）</label>
       <label class="leg-item active"><input type="checkbox" id="lyr-grid" checked><span class="swatch" style="background:var(--grid-cyan-strong)"></span>經緯網格</label>
       <label class="leg-item active"><input type="checkbox" id="lyr-country-border" checked><span class="swatch" style="background:#d7dee2"></span>國家邊界</label>
       <label class="leg-item active"><input type="checkbox" id="lyr-tw-county" checked><span class="swatch" style="background:#ffd764"></span>台灣縣市界線</label>
@@ -166,7 +207,6 @@
       <label class="leg-item"><input type="checkbox" id="lyr-jma-truecolor"><span class="swatch" style="background:linear-gradient(90deg,#2b6e46,#e8ecef)"></span>JMA 真實色衛星雲圖</label>
       <label class="leg-item"><input type="checkbox" id="lyr-jma-infrared"><span class="swatch" style="background:linear-gradient(90deg,#111827,#9ca3af,#f9fafb)"></span>JMA 紅外線衛星雲圖</label>
     </div>
-  </div>
   </div>
 
   <div id="timeline" class="panel">
@@ -322,19 +362,20 @@ function kmUnproject(x,y,refLon,refLat){
 }
 
 // ---------------------------------------------------------------------
-// 建立 Leaflet 地圖（CARTO Dark Matter 極簡深色底圖）
+// 建立 Leaflet 地圖（純向量底圖（無圖磚））
 // ---------------------------------------------------------------------
 const map = L.map('map', {
   zoomControl:false, attributionControl:true, worldCopyJump:false,
   zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 90,
   minZoom: 3, maxZoom: 19
 }).setView(INITIAL_CENTER, INITIAL_ZOOM);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-  maxZoom: 20, minZoom: 3, subdomains: 'abcd',
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-}).addTo(map);
+// 不使用任何底圖圖磚：海洋就是 #map 的深色背景，陸地完全由下方載入的
+// 國界資料（world-atlas 10m）與台灣縣市界（taiwan-atlas）以 Leaflet 向量繪製。
+map.attributionControl.setPrefix(false);
+map.attributionControl.addAttribution('國界 &copy; <a href="https://www.naturalearthdata.com/">Natural Earth</a> / world-atlas');
+map.attributionControl.addAttribution('台灣縣市 &copy; 內政部 / taiwan-atlas');
 
-// 疊層順序（由下到上）：底圖圖磚 → 陸地填色 → 衛星雲圖 → 白色邊界線 → 颱風資料。
+// 疊層順序（由下到上）：深色海洋背景 → 陸地填色 → 衛星雲圖 → 白色邊界線 → 颱風資料。
 // 用 Leaflet 的 pane 機制設固定 zIndex，不管圖層加入順序是先是後，
 // 堆疊順序永遠固定，不需要每次都手動 bringToBack/bringToFront。
 map.createPane('landFillPane');  map.getPane('landFillPane').style.zIndex = 250;   // 陸地填色（灰色）
@@ -346,6 +387,7 @@ const gridLayer = L.layerGroup().addTo(map);
 const cityLayer = L.layerGroup().addTo(map);
 const countryBorderLayer = L.layerGroup().addTo(map);
 const twCountyLayer = L.layerGroup().addTo(map);
+const seaWarnLayer = L.layerGroup().addTo(map);
 const trackLayer = L.layerGroup().addTo(map);
 const stormLayer = L.layerGroup().addTo(map);
 const coneLayer = L.layerGroup().addTo(map);
@@ -473,7 +515,7 @@ async function loadBoundaries(){
     // 邊界線在衛星雲圖上面（boundaryPane），這樣衛星雲圖才能疊在填色和邊界線之間。
     L.geoJSON(countriesGeo, {
       filter: f => !isTaiwan(f), pane: 'landFillPane',
-      style: { fill:true, fillColor:'#8b909a', fillOpacity:0.75, stroke:false, interactive:false }
+      style: { fill:true, fillColor:'#8b909a', fillOpacity:1, stroke:false, interactive:false }
     }).addTo(countryBorderLayer);
     L.geoJSON(countriesGeo, {
       filter: f => !isTaiwan(f), pane: 'boundaryPane',
@@ -486,10 +528,12 @@ async function loadBoundaries(){
     const countiesGeo = topojson.feature(twTopo, twTopo.objects.counties);
     // 台灣這邊也一樣拆開：填色跟其他國家用同一組灰色（landFillPane），
     // 白色縣市界線放在衛星雲圖上面（boundaryPane），維持你要的堆疊順序。
-    L.geoJSON(countiesGeo, {
+    const countyFillGeo = L.geoJSON(countiesGeo, {
       pane: 'landFillPane',
-      style: { fill:true, fillColor:'#8b909a', fillOpacity:0.75, stroke:false, interactive:false }
+      style: { fill:true, fillColor:'#8b909a', fillOpacity:1, stroke:false, interactive:false }
     }).addTo(twCountyLayer);
+    prepareCountyHit(countyFillGeo);
+    if (currentTimeMs!==null && currentTyphoon) renderAtTime(currentTimeMs); // 縣市資料晚於颱風載入時補算一次
     L.geoJSON(countiesGeo, {
       pane: 'boundaryPane',
       style: { color:'#ffffff', weight:1.3, opacity:0.95, fill:false, interactive:false }
@@ -499,12 +543,82 @@ async function loadBoundaries(){
 loadBoundaries();
 
 // ---------------------------------------------------------------------
+// 海上警報範圍線：氣象署定義「7級風暴風範圍可能侵襲臺灣本島、澎湖、金門或
+// 馬祖 100 公里以內海域」時發布海上警報，所以這條線 = 各縣市（含離島）陸地
+// 向外 100 公里的外緣。座標是用 taiwan-atlas 縣市界預先計算好的（turf buffer）。
+// ---------------------------------------------------------------------
+const SEA_WARN_100KM = [[[117.16,24.41],[117.21,24.12],[117.39,23.81],[117.57,23.65],[117.81,23.54],[118.06,23.48],[118.34,23.49],[118.4,23.06],[118.63,22.66],[118.91,22.42],[119.33,22.3],[119.57,21.79],[119.83,21.57],[120.03,21.3],[120.25,21.14],[120.8,21],[121.05,21.01],[121.29,21.09],[121.79,21.06],[122.19,21.22],[122.47,21.53],[122.56,21.74],[122.58,21.99],[122.47,22.43],[122.48,22.79],[122.4,23.05],[122.61,23.84],[122.79,24.18],[122.92,24.63],[122.99,24.92],[122.98,25.21],[122.82,25.53],[122.51,25.86],[121.92,26.14],[121.51,26.2],[121.5,26.51],[121.43,26.73],[121.25,26.97],[121.06,27.12],[120.73,27.25],[120.4,27.28],[119.68,27.14],[119.39,27],[119.15,26.78],[118.97,26.48],[118.92,26.25],[118.93,25.76],[118.72,25.62],[118.57,25.42],[118.08,25.38],[117.58,25.12],[117.28,24.8],[117.16,24.41]]];
+SEA_WARN_100KM.forEach(ring=>{
+  L.polyline(ring.map(c=>[c[1],c[0]]), {
+    color:'#ffb02e', weight:2, opacity:0.95, dashArray:'8 6', interactive:false, pane:'boundaryPane'
+  }).addTo(seaWarnLayer);
+});
+
+// ---------------------------------------------------------------------
+// 縣市受暴風圈影響變色：暴風圈（圓）碰到縣市多邊形就算。
+// 10 級風圈碰到 → 黃色；只有 7 級風圈碰到 → 深藍色；否則維持灰色。
+// 為了播放時每一幀都能算，縣市外環先抽稀（約 120 點）並預存 bbox。
+// ---------------------------------------------------------------------
+const LAND_GREY = '#8b909a', HIT7_COLOR = '#1e40af', HIT10_COLOR = '#facc15';
+let countyHitItems = [];   // {layer, ring:[[lon,lat]...], bbox:[w,s,e,n], state}
+function prepareCountyHit(geoLayer){
+  geoLayer.eachLayer(l=>{
+    const g = l.feature && l.feature.geometry; if (!g) return;
+    const polys = g.type==='Polygon' ? [g.coordinates] : g.coordinates;
+    const rings = polys.map(pg=>{
+      const r = pg[0], step = Math.max(1, Math.ceil(r.length/120));
+      const out = []; for (let i=0;i<r.length;i+=step) out.push(r[i]);
+      if (out[out.length-1]!==r[r.length-1]) out.push(r[r.length-1]);
+      return out;
+    });
+    let w=999,s=999,e=-999,n=-999;
+    rings.forEach(r=>r.forEach(c=>{ w=Math.min(w,c[0]); e=Math.max(e,c[0]); s=Math.min(s,c[1]); n=Math.max(n,c[1]); }));
+    countyHitItems.push({layer:l, rings, bbox:[w,s,e,n], state:0});
+  });
+}
+function ringHit(ring, cLon, cLat, rKm){
+  const kx = 111.32*Math.cos(cLat*Math.PI/180), ky = 110.57;
+  let inside = false, minD2 = Infinity;
+  for (let i=0, j=ring.length-1; i<ring.length; j=i++){
+    const ax=(ring[j][0]-cLon)*kx, ay=(ring[j][1]-cLat)*ky, bx=(ring[i][0]-cLon)*kx, by=(ring[i][1]-cLat)*ky;
+    if ((ay>0)!==(by>0) && 0 < ax + (bx-ax)*(0-ay)/(by-ay)) inside = !inside;
+    const dx=bx-ax, dy=by-ay, l2=dx*dx+dy*dy;
+    let t = l2>0 ? -(ax*dx+ay*dy)/l2 : 0; t = Math.max(0, Math.min(1, t));
+    const px=ax+t*dx, py=ay+t*dy, d2=px*px+py*py;
+    if (d2<minD2) minD2=d2;
+  }
+  return inside || minD2 <= rKm*rKm;
+}
+function countyTouched(item, cLon, cLat, rKm){
+  if (!rKm) return false;
+  const kx = 111.32*Math.cos(cLat*Math.PI/180);
+  const [w,s,e,n] = item.bbox;
+  if (cLon < w - rKm/kx || cLon > e + rKm/kx || cLat < s - rKm/110.57 || cLat > n + rKm/110.57) return false;
+  return item.rings.some(r=>ringHit(r, cLon, cLat, rKm));
+}
+// ll: [lat,lon]；r7/r10: 公里（沒有就傳 null 表示全部還原）
+function updateCountyHits(ll, r7, r10){
+  if (!countyHitItems.length) return;
+  countyHitItems.forEach(it=>{
+    let st = 0;
+    if (ll && layers.countyHit){
+      if (countyTouched(it, ll[1], ll[0], r10)) st = 2;
+      else if (countyTouched(it, ll[1], ll[0], r7)) st = 1;
+    }
+    if (st !== it.state){
+      it.state = st;
+      it.layer.setStyle({ fillColor: st===2 ? HIT10_COLOR : st===1 ? HIT7_COLOR : LAND_GREY });
+    }
+  });
+}
+
+// ---------------------------------------------------------------------
 // 狀態
 // ---------------------------------------------------------------------
 let TYPHOONS = [];
 let currentTyphoon = TYPHOONS[0];
 let currentTimeMs = null; // 目前顯示的「虛擬時間」（毫秒），可以是任兩個資料點之間的任意時刻
-let layers = { track:true, storm:true, cone:true, forecastMode:false, grid:true, cities:true, countryBorder:true, twCounty:true, jmaSat:false, jmaTrueColor:false, jmaInfrared:false };
+let layers = { track:true, storm:true, cone:true, forecastMode:false, grid:true, cities:true, countryBorder:true, twCounty:true, seaWarn:true, countyHit:true, jmaSat:false, jmaTrueColor:false, jmaInfrared:false };
 updateCityVisibility();
 
 function nowIndex(track){
@@ -695,6 +809,7 @@ function renderAtTime(timeMs){
 
   updateStormCircle(stormCircle7, ll, layers.storm ? p.stormRadiusKm : null);
   updateStormCircle(stormCircle10, ll, layers.storm ? p.stormRadius25Km : null);
+  updateCountyHits(ll, layers.storm ? p.stormRadiusKm : null, layers.storm ? p.stormRadius25Km : null);
 
   // 固定觀測暴風圈：只在時間軸捲到「現在」之後（預測時段）才顯示，
   // 用來對照移動中的預測暴風圈跟最後一次觀測的暴風圈差多少。
@@ -870,13 +985,15 @@ document.getElementById('tl-speed').addEventListener('click', function(){
   if (wasPlaying) startPlay(); // 播放中切換模式，直接用新模式接著播，不留在舊模式的狀態
 });
 
-[["lyr-track","track"],["lyr-storm","storm"],["lyr-cone","cone"],["lyr-forecast-mode","forecastMode"],["lyr-grid","grid"],["lyr-country-border","countryBorder"],["lyr-tw-county","twCounty"],["lyr-cities","cities"],["lyr-jma-sat","jmaSat"],["lyr-jma-truecolor","jmaTrueColor"],["lyr-jma-infrared","jmaInfrared"]].forEach(([id,key])=>{
+[["lyr-track","track"],["lyr-storm","storm"],["lyr-cone","cone"],["lyr-forecast-mode","forecastMode"],["lyr-grid","grid"],["lyr-country-border","countryBorder"],["lyr-tw-county","twCounty"],["lyr-sea-warn","seaWarn"],["lyr-county-hit","countyHit"],["lyr-cities","cities"],["lyr-jma-sat","jmaSat"],["lyr-jma-truecolor","jmaTrueColor"],["lyr-jma-infrared","jmaInfrared"]].forEach(([id,key])=>{
   document.getElementById(id).addEventListener('change', function(){
     layers[key] = this.checked;
     this.closest('.leg-item').classList.toggle('active', this.checked);
     if (key==='grid'){ if(!layers.grid){map.removeLayer(gridLayer);} else {map.addLayer(gridLayer);} }
     else if (key==='cities'){ updateCityVisibility(); }
     else if (key==='countryBorder'){ if(!layers.countryBorder){map.removeLayer(countryBorderLayer);} else {map.addLayer(countryBorderLayer);} }
+    else if (key==='seaWarn'){ if(!layers.seaWarn){map.removeLayer(seaWarnLayer);} else {map.addLayer(seaWarnLayer);} }
+    else if (key==='countyHit'){ if (currentTyphoon && currentTimeMs!==null) renderAtTime(currentTimeMs); else updateCountyHits(null,null,null); }
     else if (key==='twCounty'){ if(!layers.twCounty){map.removeLayer(twCountyLayer);} else {map.addLayer(twCountyLayer);} }
     else if (key==='jmaSat'){
       if (!layers.jmaSat){ if (jmaSatTileLayer) map.removeLayer(jmaSatTileLayer); }
@@ -916,9 +1033,59 @@ function setupCollapse(panelId, bodyId, btnId){
     btn.textContent = collapsed ? '▸' : '▾';
   });
 }
+// ---------------------------------------------------------------------
+// 畫筆：開啟時地圖不能拖動（仍可滾輪／雙指縮放），筆跡存成經緯度，
+// 所以縮放後會跟著地圖一起縮放、不會漂移。
+// ---------------------------------------------------------------------
+(function(){
+  map.createPane('penPane'); map.getPane('penPane').style.zIndex = 650;
+  const mapEl = map.getContainer(), btn = document.getElementById('pen-btn'), bar = document.getElementById('pen-bar');
+  let on = false, color = '#ff4d4d', cur = null, pid = null;
+  const strokes = [], touches = new Set();
+  function setPen(v){
+    on = v; btn.classList.toggle('on', v); btn.setAttribute('aria-pressed', v);
+    bar.classList.toggle('open', v); mapEl.classList.toggle('pen-mode', v);
+    if (v) map.dragging.disable(); else { map.dragging.enable(); cancel(); }
+  }
+  function cancel(){ if (cur){ map.removeLayer(cur); cur = null; pid = null; } }
+  btn.addEventListener('click', e=>{ e.stopPropagation(); setPen(!on); });
+  bar.querySelectorAll('.pc').forEach(b=>b.addEventListener('click', ()=>{
+    color = b.dataset.c; bar.querySelectorAll('.pc').forEach(x=>x.classList.toggle('sel', x===b));
+  }));
+  document.getElementById('pen-undo').addEventListener('click', ()=>{ const l = strokes.pop(); if (l) map.removeLayer(l); });
+  document.getElementById('pen-clear').addEventListener('click', ()=>{ strokes.splice(0).forEach(l=>map.removeLayer(l)); });
+  const pt = e => map.mouseEventToLatLng(e);
+  mapEl.addEventListener('pointerdown', e=>{
+    if (!on || e.target.closest('.panel,#top-btns,#pen-bar,.leaflet-control')) return;
+    if (e.pointerType==='touch'){ touches.add(e.pointerId); if (touches.size>1){ cancel(); return; } }
+    if (e.pointerType==='mouse' && e.button!==0) return;
+    pid = e.pointerId;
+    cur = L.polyline([pt(e)], {color, weight:3.5, opacity:0.95, lineCap:'round', lineJoin:'round', interactive:false, pane:'penPane', smoothFactor:1}).addTo(map);
+    e.preventDefault();
+  }, true);
+  mapEl.addEventListener('pointermove', e=>{
+    if (!on || !cur || e.pointerId!==pid) return;
+    cur.addLatLng(pt(e)); e.preventDefault();
+  }, true);
+  const end = e=>{
+    touches.delete(e.pointerId);
+    if (cur && e.pointerId===pid){ strokes.push(cur); cur = null; pid = null; }
+  };
+  mapEl.addEventListener('pointerup', end, true);
+  mapEl.addEventListener('pointercancel', e=>{ touches.delete(e.pointerId); if (e.pointerId===pid) cancel(); }, true);
+})();
+
 setupCollapse('title-bar', 'title-collapsible', 'title-toggle');
 setupCollapse('readout', 'readout-collapsible', 'readout-toggle');
-setupCollapse('legend', 'legend-collapsible', 'legend-toggle');
+
+// 圖層選單：點方形按鈕才展開，再點、按 Esc 或點地圖其他地方收起
+(function(){
+  const btn=document.getElementById('layers-btn'), panel=document.getElementById('legend');
+  const setOpen=o=>{ panel.classList.toggle('open',o); btn.setAttribute('aria-expanded',o); };
+  btn.addEventListener('click',e=>{ e.stopPropagation(); setOpen(!panel.classList.contains('open')); });
+  document.addEventListener('click',e=>{ if(!panel.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') setOpen(false); });
+})();
 
 map.on('mousemove', (e)=>{
   d3set("#mouse-coord", `滑鼠位置 · ${e.latlng.lat.toFixed(2)}°N, ${e.latlng.lng.toFixed(2)}°E`);
@@ -1196,6 +1363,7 @@ function showEmptyState(fetchFailed){
   trackLayer.clearLayers(); coneLayer.clearLayers(); forecastLayer.clearLayers();
   updateStormCircle(stormCircle7, [0,0], null);
   updateStormCircle(stormCircle10, [0,0], null);
+  updateCountyHits(null, null, null);
   updateStormCircle(nowStormCircle7, [0,0], null);
   updateStormCircle(nowStormCircle10, [0,0], null);
   const msg = fetchFailed ? '無法取得即時資料' : '目前無活動颱風';
