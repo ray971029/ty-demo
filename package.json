@@ -1,0 +1,7 @@
+{
+  "name": "typhoon-data",
+  "private": true,
+  "type": "module",
+  "scripts": { "fetch": "node scripts/fetch-kml.mjs" },
+  "dependencies": { "puppeteer": "^23.0.0" }
+}

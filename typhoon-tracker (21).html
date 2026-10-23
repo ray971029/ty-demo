@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>颱風路徑潛勢圖 · 互動作戰室</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<style>
+  :root{
+    --ink-navy:#081420;
+    --sea-deep:#0c2436;
+    --grid-cyan:#1e4a63;
+    --grid-cyan-strong:#2c6685;
+    --alert-red:#e8462f;
+    --alert-red-dim:#a83323;
+    --cone-amber:#f5a623;
+    --signal-white:#eef2f0;
+    --signal-dim:#9fb2bd;
+    --data-teal:#6fd8c7;
+    --panel-border:rgba(111,216,199,0.18);
+    --glass:rgba(9,26,41,0.82);
+    --ok-green:#5fd68a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--ink-navy);overflow:hidden;font-family:'Noto Sans TC',sans-serif;}
+  #app{position:relative;width:100vw;height:100vh;}
+  #map{position:absolute;inset:0;background:var(--sea-deep);}
+
+  /* 底圖改用 CARTO Dark Matter，本身就是設計好的極簡深色風格，不需要再套濾鏡硬轉色 */
+  .leaflet-control-attribution{background:rgba(9,26,41,0.75) !important;color:var(--signal-dim) !important;font-size:9.5px !important;}
+  .leaflet-control-attribution a{color:var(--data-teal) !important;}
+
+  .grid-label-icon{color:var(--data-teal);font-family:'JetBrains Mono',monospace;font-size:8.5px;opacity:0.75;white-space:nowrap;text-shadow:0 0 3px var(--ink-navy),0 0 3px var(--ink-navy);pointer-events:none;}
+  .forecast-label-icon .time-label-box{padding:4px 8px;line-height:1.35;}
+  .eye-time-tooltip{background:rgba(9,26,41,0.88) !important;border:1px solid var(--panel-border) !important;color:var(--cone-amber) !important;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;padding:2px 6px;box-shadow:none !important;}
+  .eye-time-tooltip::before{display:none;}
+  .time-label-icon{position:relative;pointer-events:none;}
+  .time-label-icon .leader-line{position:absolute;background:rgba(255,255,255,0.85);height:1.5px;transform-origin:0 50%;}
+  .time-label-icon .leader-dot{position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.85);}
+  .time-label-icon .time-label-box{position:absolute;background:rgba(30,20,64,0.92);border:1px solid rgba(167,139,250,0.4);color:var(--cone-amber);font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:4px;white-space:nowrap;}
+  .city-label-tooltip{background:transparent !important;border:none !important;box-shadow:none !important;color:var(--signal-dim);font-family:'Noto Sans TC',sans-serif;font-size:11px;font-weight:500;text-shadow:0 0 3px var(--ink-navy),0 0 3px var(--ink-navy),0 0 3px var(--ink-navy);}
+  .city-label-tooltip::before{display:none;}
+
+  .eye-pulse{animation:pulse 2.2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:0.9;} 50%{opacity:0.2;}}
+  @media (prefers-reduced-motion: reduce){ .eye-pulse{animation:none;} }
+
+  /* ---------- HUD panels ---------- */
+  .panel{position:absolute;background:var(--glass);backdrop-filter:blur(10px);border:1px solid var(--panel-border);border-radius:10px;color:var(--signal-white);pointer-events:auto;z-index:500;}
+
+  #title-bar{top:16px;left:16px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;max-width:min(340px, 82vw);}
+  #title-bar .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--data-teal);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .status-pill{padding:2px 7px;border-radius:4px;font-size:9px;letter-spacing:0.04em;display:inline-flex;align-items:center;gap:5px;}
+  .status-pill.status-loading{background:rgba(159,178,189,0.18);color:var(--signal-dim);}
+  .status-pill.status-live{background:rgba(95,214,138,0.16);color:var(--ok-green);}
+  .status-pill.status-offline{background:var(--alert-red-dim);color:var(--signal-white);}
+  .status-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .status-loading .status-dot{animation:pulse 1.3s ease-in-out infinite;}
+  #refresh-btn{background:none;border:1px solid var(--panel-border);color:var(--data-teal);border-radius:4px;font-size:11px;padding:1px 6px;cursor:pointer;}
+  #refresh-btn:hover{background:rgba(255,255,255,0.08);}
+  #title-bar h1{margin:0;font-size:17px;font-weight:900;letter-spacing:0.02em;}
+  #typhoon-select{margin-top:4px;width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--panel-border);color:var(--signal-white);font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:500;padding:7px 8px;border-radius:6px;}
+  #typhoon-select option{background:#0d2036;color:var(--signal-white);}
+  #status-detail{font-size:10px;color:var(--signal-dim);line-height:1.5;}
+
+  #right-stack{position:absolute;top:16px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:12px;z-index:500;pointer-events:none;}
+  #right-stack .panel{position:static;pointer-events:auto;}
+  #readout{padding:12px 14px;width:206px;font-family:'JetBrains Mono',monospace;font-size:11.5px;}
+  #readout.collapsed{width:auto;}
+  #top-btns{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:600;}
+  .sq-btn{position:relative;width:46px;height:46px;border-radius:12px;border:1px solid rgba(127,211,220,0.28);background:rgba(18,26,30,0.92);color:#7fd3dc;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;box-shadow:0 2px 10px rgba(0,0,0,0.45);}
+  .sq-btn:hover{background:rgba(30,42,48,0.96);}
+  .sq-btn:focus-visible{outline:2px solid var(--cone-amber);outline-offset:2px;}
+  .sq-btn.on{background:#7fd3dc;color:#10181c;}
+  .sq-btn svg{width:26px;height:26px;}
+  #layers-btn .badge{position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;background:#7fd3dc;border:2px solid #10181c;}
+  #pen-bar{position:absolute;top:72px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:8px;padding:8px 10px;z-index:590;background:rgba(18,26,30,0.94);border:1px solid rgba(127,211,220,0.28);border-radius:12px;}
+  #pen-bar.open{display:flex;}
+  #pen-bar .pc{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;}
+  #pen-bar .pc.sel{border-color:#fff;}
+  #pen-bar .pb{background:transparent;border:1px solid rgba(127,211,220,0.35);color:#cfeff3;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit;}
+  #pen-bar .pb:hover{background:rgba(127,211,220,0.15);}
+  #map.pen-mode{cursor:crosshair;touch-action:none;}
+  #legend{position:absolute;top:72px;left:50%;transform:translateX(-50%);padding:10px 14px;width:min(290px,90vw);max-height:calc(100vh - 190px);overflow-y:auto;font-size:12px;z-index:600;display:none;}
+  #legend.open{display:block;}
+  @media (max-width:760px){
+    #top-btns{left:auto;right:16px;transform:none;}
+    #legend,#pen-bar{left:auto;right:16px;transform:none;}
+    #right-stack{top:72px;}
+    #title-bar{max-width:calc(100vw - 100px);}
+  }
+  #readout .r-time{color:var(--cone-amber);font-weight:700;font-size:13px;margin-bottom:8px;}
+  #readout .r-row{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid rgba(255,255,255,0.06);color:var(--signal-dim);}
+  #readout .r-row span:last-child{color:var(--signal-white);text-align:right;}
+  #readout .r-cat{color:var(--alert-red);font-weight:700;}
+
+  #legend .leg-title{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:0.1em;color:var(--data-teal);}
+  #legend #legend-collapsible{margin-top:8px;}
+  .leg-item{display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;user-select:none;color:var(--signal-dim);}
+  #multi-route-legend{font-size:11px;color:var(--signal-dim);padding:0 0 4px 20px;display:none;}
+  #multi-route-legend .mr-row{display:flex;align-items:center;gap:6px;padding:1px 0;}
+  #multi-route-legend .mr-sw{width:14px;height:3px;border-radius:2px;flex:none;}
+  #multi-route-legend .mr-grp{margin-top:3px;color:var(--signal-white);}
+  .leg-item input{accent-color:var(--cone-amber);}
+  .leg-item.active{color:var(--signal-white);}
+  .swatch{width:12px;height:12px;border-radius:3px;flex:none;}
+
+  #timeline{left:50%;bottom:16px;transform:translateX(-50%);width:min(680px, 92vw);padding:10px 16px 12px;display:flex;flex-direction:column;gap:8px;}
+  #timeline{transition:transform .28s ease,opacity .28s ease;}
+  #timeline.tl-hidden{transform:translate(-50%,150%);opacity:0;pointer-events:none;}
+  @media (prefers-reduced-motion: reduce){ #timeline{transition:none;} }
+  #timeline .tl-top{display:flex;align-items:center;gap:10px;}
+  #timeline button.step{background:rgba(255,255,255,0.07);border:1px solid var(--panel-border);color:var(--signal-white);width:30px;height:30px;border-radius:7px;font-size:15px;cursor:pointer;flex:none;}
+  #timeline button.step:hover{background:rgba(255,255,255,0.15);}
+  #tl-slider{flex:1;accent-color:var(--alert-red);}
+  #tl-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--cone-amber);min-width:96px;text-align:center;flex:none;}
+  #tl-ticks{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--signal-dim);padding:0 2px;}
+
+  #zoom-controls{right:16px;bottom:16px;display:flex;flex-direction:column;gap:4px;padding:5px;}
+  #zoom-controls button{width:32px;height:32px;background:rgba(255,255,255,0.07);border:1px solid var(--panel-border);color:var(--signal-white);border-radius:6px;font-size:16px;cursor:pointer;}
+  #zoom-controls button:hover{background:rgba(255,255,255,0.15);}
+
+  #mouse-coord{left:16px;bottom:16px;padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--data-teal);}
+
+  .panel-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .collapse-btn{background:none;border:1px solid var(--panel-border);color:var(--data-teal);border-radius:4px;width:22px;height:22px;font-size:11px;line-height:1;cursor:pointer;flex:none;}
+  .collapse-btn:hover{background:rgba(255,255,255,0.08);}
+  #title-bar.collapsed{max-width:none;width:auto;}
+  #title-bar.collapsed h1{white-space:nowrap;}
+  #title-bar #title-collapsible{margin-top:8px;}
+  #readout.collapsed{width:auto;}
+  #readout .panel-topbar .r-time{margin-bottom:0;}
+
+  ::selection{background:var(--cone-amber);color:var(--ink-navy);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="map"></div>
+
+  <div id="title-bar" class="panel">
+    <div class="panel-topbar">
+      <h1 id="typhoon-name">—</h1>
+      <button id="title-toggle" class="collapse-btn" title="收合/展開">▾</button>
+    </div>
+    <div id="title-collapsible">
+      <div class="eyebrow">
+        中央氣象署式 · 路徑潛勢圖
+        <span id="data-status" class="status-pill status-loading"><span class="status-dot"></span>連線中…</span>
+        <button id="refresh-btn" title="重新讀取即時資料">⟳</button>
+      </div>
+      <select id="typhoon-select"></select>
+      <div id="status-detail"></div>
+    </div>
+  </div>
+
+  <div id="right-stack">
+  <div id="readout" class="panel">
+    <div class="panel-topbar">
+      <div class="r-time" id="r-time">—</div>
+      <button id="readout-toggle" class="collapse-btn" title="收合/展開">▾</button>
+    </div>
+    <div id="readout-collapsible">
+      <div class="r-row"><span>編號</span><span id="r-num">—</span></div>
+      <div class="r-row"><span>強度</span><span class="r-cat" id="r-cat">—</span></div>
+      <div class="r-row"><span>位置</span><span id="r-pos">—</span></div>
+      <div class="r-row"><span>近中心風速</span><span id="r-wind">—</span></div>
+      <div class="r-row"><span>陣風</span><span id="r-gust">—</span></div>
+      <div class="r-row"><span>移動</span><span id="r-move">—</span></div>
+    </div>
+  </div>
+
+  </div>
+
+  <div id="top-btns">
+    <button id="pen-btn" class="sq-btn" aria-label="畫筆" aria-pressed="false" title="畫筆（使用時地圖鎖定不能拖動，仍可縮放）">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L17 4l3 3L8 19z"/><path d="M14.5 6.5l3 3"/></svg>
+    </button>
+    <button id="layers-btn" class="sq-btn" aria-label="圖層" aria-expanded="false" aria-controls="legend" title="圖層">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M3 6h8M17 6h4M3 12h3M12 12h9M3 18h10M19 18h2"/><path d="M14 3.5v5M9 9.5v5M16 15.5v5" stroke-width="3"/></svg>
+      <span class="badge"></span>
+    </button>
+  </div>
+  <div id="pen-bar" role="toolbar" aria-label="畫筆工具">
+    <button class="pc sel" data-c="#ff4d4d" style="background:#ff4d4d" aria-label="紅"></button>
+    <button class="pc" data-c="#ffd23f" style="background:#ffd23f" aria-label="黃"></button>
+    <button class="pc" data-c="#4dd2ff" style="background:#4dd2ff" aria-label="青"></button>
+    <button class="pc" data-c="#7dff7d" style="background:#7dff7d" aria-label="綠"></button>
+    <button class="pc" data-c="#ffffff" style="background:#ffffff" aria-label="白"></button>
+    <button class="pb" id="pen-undo">復原</button>
+    <button class="pb" id="pen-clear">清除</button>
+  </div>
+  <div id="legend" class="panel">
+    <div class="panel-topbar">
+      <div class="leg-title">圖層 LAYERS</div>
+    </div>
+    <div id="legend-collapsible">
+      <label class="leg-item active"><input type="checkbox" id="lyr-track" checked><span class="swatch" style="background:var(--signal-white)"></span>路徑（依強度變色）</label>
+      <label class="leg-item active"><input type="checkbox" id="lyr-storm" checked><span class="swatch" style="background:linear-gradient(90deg,#e8462f 50%,#a855f7 50%)"></span>暴風圈（7級風紅／10級風紫）</label>
+      <label class="leg-item active"><input type="checkbox" id="lyr-cone" checked><span class="swatch" style="background:var(--cone-amber)"></span>70% 機率潛勢圓錐</label>
+      <label class="leg-item"><input type="checkbox" id="lyr-forecast-mode"><span class="swatch" style="background:#a855f7"></span>預報模式（顯示所有預報點）</label>
+      <label class="leg-item active"><input type="checkbox" id="lyr-sea-warn" checked><span class="swatch" style="background:repeating-linear-gradient(90deg,#ffffff 0 5px,transparent 5px 8px)"></span>海上警報範圍線（距陸地 100 公里）</label>
+      <label class="leg-item active"><input type="checkbox" id="lyr-county-hit" checked><span class="swatch" style="background:linear-gradient(90deg,#1e40af 50%,#facc15 50%)"></span>縣市受暴風圈影響（7級深藍／10級黃）</label>
+      <label class="leg-item"><input type="checkbox" id="lyr-multi-route"><span class="swatch" style="background:linear-gradient(90deg,#e6002f,#2f9bff,#35c46b)"></span>各國路徑模式（NCDR 多國預報）</label>
+      <div id="multi-route-legend"></div>
+      <label class="leg-item active"><input type="checkbox" id="lyr-grid" checked><span class="swatch" style="background:var(--grid-cyan-strong)"></span>經緯網格</label>
+      <label class="leg-item active"><input type="checkbox" id="lyr-country-border" checked><span class="swatch" style="background:#d7dee2"></span>國家邊界</label>
+      <label class="leg-item active"><input type="checkbox" id="lyr-tw-county" checked><span class="swatch" style="background:#ffd764"></span>台灣縣市界線</label>
+      <label class="leg-item active"><input type="checkbox" id="lyr-cities" checked><span class="swatch" style="background:var(--data-teal)"></span>城市標註</label>
+      <label class="leg-item"><input type="checkbox" id="lyr-jma-sat"><span class="swatch" style="background:linear-gradient(90deg,#4ade80,#fbbf24,#ef4444)"></span>JMA 色調強化圖（衛星雲圖）</label>
+      <label class="leg-item"><input type="checkbox" id="lyr-jma-truecolor"><span class="swatch" style="background:linear-gradient(90deg,#2b6e46,#e8ecef)"></span>JMA 真實色衛星雲圖</label>
+      <label class="leg-item"><input type="checkbox" id="lyr-jma-infrared"><span class="swatch" style="background:linear-gradient(90deg,#111827,#9ca3af,#f9fafb)"></span>JMA 紅外線衛星雲圖</label>
+    </div>
+  </div>
+
+  <div id="timeline" class="panel">
+    <div class="tl-top">
+      <button class="step" id="tl-play" title="自動連續播放">▶</button>
+      <button class="step" id="tl-prev">‹</button>
+      <input type="range" id="tl-slider" min="0" max="8" step="1" value="4">
+      <button class="step" id="tl-next">›</button>
+      <button class="step" id="tl-speed" title="播放速度：連續倍速 1x/2x/4x，或逐小時跳格播放">1x</button>
+      <div id="tl-time">—</div>
+    </div>
+    <div id="tl-ticks"><span>過去路徑</span><span>現在</span><span>預測路徑</span></div>
+  </div>
+
+  <div id="zoom-controls" class="panel">
+    <button id="zoom-in">+</button>
+    <button id="zoom-reset">⟲</button>
+    <button id="zoom-out">−</button>
+  </div>
+
+  <div id="mouse-coord" class="panel">滑鼠位置 · —</div>
+
+  <div id="empty-state" class="panel" style="display:none;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;padding:20px 28px;max-width:280px;">
+    <div style="font-size:28px;margin-bottom:8px;">🌊</div>
+    <div id="empty-state-text" style="font-weight:700;margin-bottom:6px;">目前無活動颱風</div>
+    <div style="font-size:11px;color:var(--signal-dim);line-height:1.6;">西北太平洋目前沒有觀測到活動中的熱帶氣旋，或連線暫時失敗。可以按左上角 ⟳ 重新整理看看。</div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   資料來源 DATA SOURCE
+   本頁會嘗試連線中央氣象署開放資料平台，讀取「熱帶氣旋路徑」W-C0034-005：
+     https://opendata.cwa.gov.tw/api/v1/rest/datastore/W-C0034-005
+   使用你提供的授權碼。若連線失敗（例如瀏覽器 CORS 限制、金鑰失效、
+   或目前西太平洋無活動颱風），會自動退回內建的示範資料，並在畫面左上角
+   顯示目前狀態。
+
+   注意：這把金鑰是寫死在這個 HTML 檔案的原始碼裡，任何打開這個檔案
+   原始碼的人都看得到。如果之後要把這個檔案分享給其他人或放到公開網站，
+   建議換成你自己專用、可重新申請的金鑰，或改成透過後端代理呼叫。
+
+   CWA 回傳的 JSON 結構在不同資料集版本間可能略有差異，這裡的解析函式
+   （parseCwaTyphoon）用了「關鍵字比對＋遞迴搜尋欄位」的寫法盡量兼容，
+   但沒有實際樣本資料可以百分之百保證欄位名稱完全對應。如果你實際測試
+   時發現颱風有出現、但強度/風速/圓錐半徑等數字怪怪的，把瀏覽器主控台
+   (F12 → Console/Network) 印出來的原始 JSON 貼給我，我可以照實際格式修正。
+   ========================================================================= */
+const CWA_API_KEY = "CWA-42809765-5A95-497B-BC47-5D6CCD840374";
+const CWA_ENDPOINT = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/W-C0034-005?Authorization=" + CWA_API_KEY + "&format=JSON";
+
+// ---- 地圖範圍常數（僅用來畫網格／初始視角，實際地形改用 OSM 底圖） ----
+const LON_MIN = 100, LON_MAX = 180, LAT_MIN = 0, LAT_MAX = 60;
+const INITIAL_CENTER = [23.0, 122.5];
+const INITIAL_ZOOM = 5;
+
+const CITIES = [
+  {name:"上海", lon:121.47, lat:31.23}, {name:"福州", lon:119.30, lat:26.08},
+  {name:"廈門", lon:118.09, lat:24.48}, {name:"汕頭", lon:116.68, lat:23.35},
+  {name:"香港", lon:114.17, lat:22.28}, {name:"廣州", lon:113.26, lat:23.13},
+  {name:"馬祖", lon:119.93, lat:26.15}, {name:"金門", lon:118.32, lat:24.44},
+  {name:"台北", lon:121.56, lat:25.03}, {name:"宜蘭", lon:121.75, lat:24.76},
+  {name:"花蓮", lon:121.60, lat:23.98}, {name:"台中", lon:120.68, lat:24.15},
+  {name:"澎湖", lon:119.58, lat:23.57}, {name:"台南", lon:120.21, lat:23.00},
+  {name:"高雄", lon:120.31, lat:22.62}, {name:"台東", lon:121.15, lat:22.76},
+  {name:"恆春", lon:120.74, lat:22.00}, {name:"彭佳嶼", lon:122.08, lat:25.63},
+  {name:"石垣島", lon:124.16, lat:24.34}, {name:"宮古島", lon:125.28, lat:24.80},
+  {name:"那霸", lon:127.68, lat:26.21}, {name:"鹿兒島", lon:130.56, lat:31.60},
+  {name:"福岡", lon:130.40, lat:33.59}, {name:"長崎", lon:129.87, lat:32.75},
+  {name:"大阪", lon:135.50, lat:34.69}, {name:"首爾", lon:126.98, lat:37.57},
+  {name:"釜山", lon:129.08, lat:35.18}, {name:"濟州", lon:126.53, lat:33.50},
+  {name:"馬尼拉", lon:120.98, lat:14.60},
+];
+
+// 強度分類 → 顏色（路徑線與颱風圖示都用這組配色）
+function categoryColor(cat){
+  switch(cat){
+    case '熱帶性低氣壓': return '#3b82f6';
+    case '輕度颱風': return '#22c55e';
+    case '中度颱風': return '#f59e0b';
+    case '強烈颱風': return '#ef4444';
+    case '溫帶氣旋': return '#3b82f6';
+    default: return '#9fb2bd';
+  }
+}
+
+// ---------------------------------------------------------------------
+// 錐形不確定圈（70% 機率潛勢圓錐）：外切線 + 取樣弧線，輸出經緯度多邊形頂點
+// ---------------------------------------------------------------------
+function externalTangentAngle(c1, c2){
+  const dx = c2.x - c1.x, dy = c2.y - c1.y;
+  const d = Math.max(1e-6, Math.hypot(dx, dy));
+  const theta = Math.atan2(dy, dx);
+  let ratio = (c1.r - c2.r) / d;
+  ratio = Math.max(-1, Math.min(1, ratio));
+  const phi = Math.acos(ratio);
+  return { theta, phi };
+}
+function pointOnCircle(c, angle){ return [c.x + c.r*Math.cos(angle), c.y + c.r*Math.sin(angle)]; }
+function normalizeAngle(a){ while(a>Math.PI)a-=2*Math.PI; while(a<-Math.PI)a+=2*Math.PI; return a; }
+function sampleArc(c,a,b,n,longWay){
+  let delta = normalizeAngle(b-a);
+  if (longWay) delta = delta>=0 ? delta-2*Math.PI : delta+2*Math.PI;
+  const pts=[];
+  for(let i=1;i<n;i++){ const t=i/n; pts.push(pointOnCircle(c, a+delta*t)); }
+  return pts;
+}
+function buildConePolygonPoints(circles, arcSegments){
+  arcSegments = arcSegments || 14;
+  if (circles.length===0) return [];
+  if (circles.length===1){
+    const c=circles[0], pts=[];
+    for(let i=0;i<32;i++){ pts.push(pointOnCircle(c,(i/32)*2*Math.PI)); }
+    return pts;
+  }
+  const pairs = circles.slice(0,-1).map((c,i)=>externalTangentAngle(c,circles[i+1]));
+  const upperPts=[pointOnCircle(circles[0], pairs[0].theta+pairs[0].phi)];
+  for(let i=0;i<pairs.length;i++){
+    const c2=circles[i+1];
+    const angleUpper = pairs[i].theta+pairs[i].phi;
+    upperPts.push(pointOnCircle(c2, angleUpper));
+    if(i<pairs.length-1){
+      const nextAngle = pairs[i+1].theta+pairs[i+1].phi;
+      sampleArc(c2, angleUpper, nextAngle, arcSegments, false).forEach(p=>upperPts.push(p));
+      upperPts.push(pointOnCircle(c2, nextAngle));
+    }
+  }
+  const last = circles[circles.length-1];
+  const lastPair = pairs[pairs.length-1];
+  const capStart = lastPair.theta+lastPair.phi, capEnd = lastPair.theta-lastPair.phi;
+  sampleArc(last, capStart, capEnd, arcSegments*2, true).forEach(p=>upperPts.push(p));
+  upperPts.push(pointOnCircle(last, capEnd));
+
+  const lowerPts=[pointOnCircle(circles[0], pairs[0].theta-pairs[0].phi)];
+  for(let i=0;i<pairs.length;i++){
+    const c2=circles[i+1];
+    const angleLower = pairs[i].theta-pairs[i].phi;
+    lowerPts.push(pointOnCircle(c2, angleLower));
+    if(i<pairs.length-1){
+      const nextAngle = pairs[i+1].theta-pairs[i+1].phi;
+      sampleArc(c2, angleLower, nextAngle, arcSegments, false).forEach(p=>lowerPts.push(p));
+      lowerPts.push(pointOnCircle(c2, nextAngle));
+    }
+  }
+  return upperPts.concat(lowerPts.reverse());
+}
+// 局部平面座標（公里）轉換：用來讓上面的切線幾何在地圖上也成立
+function kmProject(lon,lat,refLon,refLat){
+  return { x:(lon-refLon)*111.320*Math.cos(refLat*Math.PI/180), y:(lat-refLat)*110.574 };
+}
+function kmUnproject(x,y,refLon,refLat){
+  return { lon: refLon + x/(111.320*Math.cos(refLat*Math.PI/180)), lat: refLat + y/110.574 };
+}
+
+// ---------------------------------------------------------------------
+// 建立 Leaflet 地圖（純向量底圖（無圖磚））
+// ---------------------------------------------------------------------
+const map = L.map('map', {
+  zoomControl:false, attributionControl:true, worldCopyJump:false,
+  zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 90,
+  minZoom: 3, maxZoom: 19
+}).setView(INITIAL_CENTER, INITIAL_ZOOM);
+// 不使用任何底圖圖磚：海洋就是 #map 的深色背景，陸地完全由下方載入的
+// 國界資料（world-atlas 10m）與台灣縣市界（taiwan-atlas）以 Leaflet 向量繪製。
+map.attributionControl.setPrefix(false);
+map.attributionControl.addAttribution('國界 &copy; <a href="https://www.naturalearthdata.com/">Natural Earth</a> / world-atlas');
+map.attributionControl.addAttribution('台灣縣市 &copy; 內政部 / taiwan-atlas');
+
+// 疊層順序（由下到上）：深色海洋背景 → 陸地填色 → 衛星雲圖 → 白色邊界線 → 颱風資料。
+// 用 Leaflet 的 pane 機制設固定 zIndex，不管圖層加入順序是先是後，
+// 堆疊順序永遠固定，不需要每次都手動 bringToBack/bringToFront。
+map.createPane('landFillPane');  map.getPane('landFillPane').style.zIndex = 250;   // 陸地填色（灰色）
+map.createPane('satPane');       map.getPane('satPane').style.zIndex = 300;       // 衛星雲圖
+map.createPane('boundaryPane');  map.getPane('boundaryPane').style.zIndex = 350;  // 國界／縣市邊界線
+// 預設 overlayPane 是 400，颱風路徑/暴風圈/圓錐/標記全部維持預設 pane，永遠蓋在最上面。
+
+const gridLayer = L.layerGroup().addTo(map);
+const cityLayer = L.layerGroup().addTo(map);
+const countryBorderLayer = L.layerGroup().addTo(map);
+const twCountyLayer = L.layerGroup().addTo(map);
+const seaWarnLayer = L.layerGroup().addTo(map);
+const trackLayer = L.layerGroup().addTo(map);
+const stormLayer = L.layerGroup().addTo(map);
+const coneLayer = L.layerGroup().addTo(map);
+const forecastLayer = L.layerGroup().addTo(map);
+const markerLayer = L.layerGroup().addTo(map);
+
+// 颱風圖示與暴風圈：用「持久物件＋搬動位置」而不是每次清空重建，
+// 這樣才能做出補間動畫（平滑移動），而不是瞬間跳點。
+const eyeCore = L.circleMarker([0,0], {radius:6, color:'#081420', weight:1.4, fillColor:'#9fb2bd', fillOpacity:1}).addTo(markerLayer);
+
+// 拉線標籤：通用函式，用一條線往指定方向拉出去再放文字方框，
+// 不會直接疊在錨點正上方擋住底下的圖示/圓圈。box 用「線的終點當
+// 右下角錨點、往左上自動撐開寬度」的方式定位，不寫死寬度，
+// 文字多長框就多寬，不會溢出。回傳整個 divIcon 需要的 html 字串。
+// 拉線標籤：通用函式，用一條線往指定方向拉出去再放文字方框，
+// 不會直接疊在錨點正上方擋住底下的圖示/圓圈。
+//
+// 錨點設計成固定是 (0,0)——也就是「這個 html 的左上角＝颱風的真實
+// 位置」，這是 Leaflet 的 iconAnchor 最原始、最沒有計算風險的用法
+// （iconAnchor:[0,0] 代表不做任何位移，容器左上角直接對齊經緯度
+// 換算出來的螢幕座標）。線的起點固定在這個保證正確的原點，往外延伸
+// 才不會因為我自己另外算「置中座標」算錯而讓線頭對不準颱風位置。
+// 標籤文字框的擺放方向用 CSS 的百分比 translate 處理（往左或右各
+// 平移自身寬度的 0% / 100%），這樣不用事先知道文字框實際渲染出來
+// 有多寬，瀏覽器算好了就會自動套用，不會有「猜錯寬度」的問題。
+function buildLeaderLabelHtml(bearing, lineLen, innerHtml){
+  const rad = bearing * Math.PI/180;
+  const dx = Math.sin(rad), dy = -Math.cos(rad);
+  const bx = dx*lineLen, by = dy*lineLen; // 線終點，相對於原點(0,0)＝颱風真實位置
+  const lineAngleDeg = Math.atan2(dy, dx) * 180/Math.PI;
+  const gap = 6;
+  const boxLeft = bx + dx*gap, boxTop = by + dy*gap;
+  const translateX = dx >= 0 ? '0%' : '-100%';
+  const translateY = dy >= 0 ? '0%' : '-100%';
+  return `
+    <div class="leader-dot" style="left:-2px;top:-2px;"></div>
+    <div class="leader-line" style="left:0px;top:0px;width:${lineLen}px;transform:rotate(${lineAngleDeg}deg);"></div>
+    <div class="time-label-box" style="left:${boxLeft.toFixed(1)}px;top:${boxTop.toFixed(1)}px;transform:translate(${translateX},${translateY});">${innerHtml}</div>
+  `;
+}
+
+// 時間標籤：用一條線往 305 度方向（左上）拉出去再放文字，
+// 不會直接疊在颱風圖示正上方擋住暴風圈跟路徑。
+const TIME_LABEL_BEARING = 305; // 度，正北0，順時針
+const TIME_LABEL_LINE_LEN = 46; // px
+const timeLabelMarker = L.marker([0,0], {
+  icon: L.divIcon({
+    className:'time-label-icon',
+    html: buildLeaderLabelHtml(TIME_LABEL_BEARING, TIME_LABEL_LINE_LEN, '<span class="time-label-text"></span>'),
+    iconSize:[0,0], iconAnchor:[0,0]
+  }),
+  interactive:false
+}).addTo(markerLayer);
+let timeLabelTextEl = null;
+function setTimeLabelText(text){
+  if (!timeLabelTextEl){
+    const el = timeLabelMarker.getElement();
+    timeLabelTextEl = el ? el.querySelector('.time-label-text') : null;
+  }
+  if (timeLabelTextEl) timeLabelTextEl.textContent = text;
+}
+const stormCircle7 = L.circle([0,0], {radius:1, color:'#e8462f', weight:1.4, fillColor:'#e8462f', fillOpacity:0.4});
+const stormCircle10 = L.circle([0,0], {radius:1, color:'#a855f7', weight:1.4, fillColor:'#a855f7', fillOpacity:0.4});
+stormLayer.addLayer(stormCircle7);
+stormLayer.addLayer(stormCircle10);
+// 固定的「現在（觀測）」暴風圈：半徑釘死在氣象署最後一次觀測的數值，
+// 不會跟著時間軸變動，只有捲到「現在」之後（預測時段）才顯示，方便
+// 跟移動中的預測暴風圈比較。這裡只畫圈本身，不掛標記圖示或文字標籤。
+const nowStormCircle7 = L.circle([0,0], {radius:1, color:'#e8462f', weight:1.4, fillColor:'#e8462f', fillOpacity:0.4});
+const nowStormCircle10 = L.circle([0,0], {radius:1, color:'#a855f7', weight:1.4, fillColor:'#a855f7', fillOpacity:0.4});
+
+function drawGrid(){
+  gridLayer.clearLayers();
+  for (let lon=Math.ceil(LON_MIN); lon<=LON_MAX; lon++){
+    gridLayer.addLayer(L.polyline([[LAT_MIN,lon],[LAT_MAX,lon]], {color:'#4f9bc0', weight:1.0, opacity:0.7, interactive:false}));
+  }
+  for (let lat=Math.ceil(LAT_MIN); lat<=LAT_MAX; lat++){
+    gridLayer.addLayer(L.polyline([[lat,LON_MIN],[lat,LON_MAX]], {color:'#4f9bc0', weight:1.0, opacity:0.7, interactive:false}));
+  }
+  for (let lon=Math.ceil(LON_MIN/5)*5; lon<=LON_MAX; lon+=5){
+    gridLayer.addLayer(L.polyline([[LAT_MIN,lon],[LAT_MAX,lon]], {color:'#6fd8c7', weight:1.6, opacity:0.9, interactive:false}));
+    gridLayer.addLayer(L.marker([LAT_MAX,lon], {interactive:false, icon:L.divIcon({className:'grid-label-icon', html:lon+'°E', iconSize:[36,12]})}));
+  }
+  for (let lat=Math.ceil(LAT_MIN/5)*5; lat<=LAT_MAX; lat+=5){
+    gridLayer.addLayer(L.polyline([[lat,LON_MIN],[lat,LON_MAX]], {color:'#6fd8c7', weight:1.6, opacity:0.9, interactive:false}));
+    gridLayer.addLayer(L.marker([lat,LON_MIN], {interactive:false, icon:L.divIcon({className:'grid-label-icon', html:lat+'°N', iconSize:[36,12]})}));
+  }
+}
+function drawCities(){
+  cityLayer.clearLayers();
+  CITIES.forEach(c=>{
+    L.circleMarker([c.lat,c.lon], {radius:2.6, color:'#081420', weight:0.6, fillColor:'#6fd8c7', fillOpacity:1})
+      .bindTooltip(c.name, {permanent:true, direction:'right', offset:[5,0], className:'city-label-tooltip'})
+      .addTo(cityLayer);
+  });
+}
+drawGrid(); drawCities();
+
+// 城市點位在縮小地圖時，地理距離在畫面上會被壓得很近，固定像素大小的
+// 點跟文字標籤就會擠成一團。做法：縮到一定程度以下就先不顯示城市圖層，
+// 放大到有足夠空間再顯示，而不是讓點本身變形或硬是疊在一起。
+const CITY_MIN_ZOOM = 6;
+function updateCityVisibility(){
+  const shouldShow = layers.cities && map.getZoom() >= CITY_MIN_ZOOM;
+  if (shouldShow && !map.hasLayer(cityLayer)) map.addLayer(cityLayer);
+  else if (!shouldShow && map.hasLayer(cityLayer)) map.removeLayer(cityLayer);
+}
+map.on('zoomend', updateCityVisibility);
+
+// ---------------------------------------------------------------------
+// 國家邊界／台灣縣市界線：真的抓公開的邊界資料來畫，不是手繪近似。
+// 世界國界：world-atlas（Natural Earth 1:110m）
+// 台灣縣市界線：taiwan-atlas（內政部 直轄市、縣市界線圖資，MIT 授權）
+// 兩份都是 TopoJSON，用 topojson-client 轉成 GeoJSON 再畫。
+// 抓取失敗也不影響其他功能，只是那個圖層看不到而已。
+// ---------------------------------------------------------------------
+async function loadBoundaries(){
+  try{
+    const worldTopo = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-10m.json').then(r=>r.json());
+    const countriesGeo = topojson.feature(worldTopo, worldTopo.objects.countries);
+    // 台灣已經有更精確的縣市界線圖層負責畫邊界＋填色了，這裡的粗略國界
+    // 版本會疊上去很難看，所以直接把它濾掉，只留其他國家。
+    const isTaiwan = f => f.id === '158' || (f.properties && f.properties.name === 'Taiwan');
+    // 填色跟邊界線拆成兩個圖層、分別放在不同 pane：填色在最底（landFillPane），
+    // 邊界線在衛星雲圖上面（boundaryPane），這樣衛星雲圖才能疊在填色和邊界線之間。
+    L.geoJSON(countriesGeo, {
+      filter: f => !isTaiwan(f), pane: 'landFillPane',
+      style: { fill:true, fillColor:'#8b909a', fillOpacity:1, stroke:false, interactive:false }
+    }).addTo(countryBorderLayer);
+    L.geoJSON(countriesGeo, {
+      filter: f => !isTaiwan(f), pane: 'boundaryPane',
+      style: { color:'#d7dee2', weight:1.1, opacity:0.8, fill:false, interactive:false }
+    }).addTo(countryBorderLayer);
+  }catch(e){ console.warn('世界國界資料載入失敗：', e); }
+
+  try{
+    const twTopo = await fetch('https://cdn.jsdelivr.net/npm/taiwan-atlas/counties-10t.json').then(r=>r.json());
+    const countiesGeo = topojson.feature(twTopo, twTopo.objects.counties);
+    // 台灣這邊也一樣拆開：填色跟其他國家用同一組灰色（landFillPane），
+    // 白色縣市界線放在衛星雲圖上面（boundaryPane），維持你要的堆疊順序。
+    const countyFillGeo = L.geoJSON(countiesGeo, {
+      pane: 'landFillPane',
+      style: { fill:true, fillColor:'#8b909a', fillOpacity:1, stroke:false, interactive:false }
+    }).addTo(twCountyLayer);
+    prepareCountyHit(countyFillGeo);
+    if (currentTimeMs!==null && currentTyphoon) renderAtTime(currentTimeMs); // 縣市資料晚於颱風載入時補算一次
+    L.geoJSON(countiesGeo, {
+      pane: 'boundaryPane',
+      style: { color:'#ffffff', weight:1.3, opacity:0.95, fill:false, interactive:false }
+    }).addTo(twCountyLayer);
+  }catch(e){ console.warn('台灣縣市界線資料載入失敗：', e); }
+}
+loadBoundaries();
+
+// ---------------------------------------------------------------------
+// 海上警報範圍線：氣象署定義「7級風暴風範圍可能侵襲臺灣本島、澎湖、金門或
+// 馬祖 100 公里以內海域」時發布海上警報，所以這條線 = 各縣市（含離島）陸地
+// 向外 100 公里的外緣。座標是用 taiwan-atlas 縣市界預先計算好的（turf buffer），並已剔除落在
+// 中國等他國陸地上的部分（用 world-atlas 10m 國界判斷），所以不會畫到別人的陸地上。
+// ---------------------------------------------------------------------
+const SEA_WARN_100KM = [[[117.43,23.77],[117.45,23.76]],[[117.51,23.71],[117.52,23.7],[117.53,23.68],[117.55,23.67],[117.56,23.66],[117.58,23.65],[117.59,23.64],[117.61,23.63],[117.63,23.62],[117.65,23.61],[117.66,23.61],[117.68,23.6],[117.7,23.59],[117.72,23.58],[117.74,23.57],[117.75,23.57],[117.77,23.56],[117.79,23.55],[117.81,23.54],[117.82,23.54],[117.84,23.53],[117.86,23.53],[117.88,23.52],[117.9,23.52],[117.92,23.51],[117.94,23.51],[117.96,23.5],[117.98,23.5],[117.99,23.5],[118.01,23.49],[118.03,23.49],[118.05,23.48],[118.07,23.48],[118.09,23.48],[118.11,23.48],[118.13,23.48],[118.15,23.48],[118.17,23.48],[118.19,23.48],[118.21,23.49],[118.23,23.49],[118.25,23.49],[118.27,23.49],[118.29,23.49],[118.31,23.49],[118.33,23.49],[118.34,23.49],[118.34,23.47],[118.35,23.45],[118.35,23.43],[118.35,23.41],[118.35,23.4],[118.36,23.38],[118.36,23.36],[118.36,23.34],[118.36,23.32],[118.37,23.31],[118.37,23.29],[118.37,23.27],[118.37,23.25],[118.38,23.24],[118.38,23.22],[118.38,23.2],[118.38,23.18],[118.39,23.16],[118.39,23.15],[118.39,23.13],[118.39,23.11],[118.4,23.09],[118.4,23.07],[118.4,23.06],[118.41,23.04],[118.42,23.03],[118.43,23.01],[118.44,22.99],[118.45,22.98],[118.46,22.96],[118.47,22.95],[118.47,22.93],[118.48,22.91],[118.49,22.9],[118.5,22.88],[118.51,22.87],[118.52,22.85],[118.53,22.83],[118.54,22.82],[118.55,22.8],[118.56,22.79],[118.57,22.77],[118.58,22.76],[118.58,22.74],[118.59,22.72],[118.6,22.71],[118.61,22.69],[118.62,22.68],[118.63,22.66],[118.64,22.65],[118.66,22.64],[118.67,22.62],[118.69,22.61],[118.7,22.6],[118.72,22.59],[118.73,22.57],[118.74,22.56],[118.76,22.55],[118.77,22.54],[118.79,22.53],[118.8,22.51],[118.82,22.5],[118.83,22.49],[118.84,22.48],[118.86,22.46],[118.87,22.45],[118.89,22.44],[118.9,22.43],[118.92,22.42],[118.94,22.41],[118.95,22.41],[118.97,22.4],[118.99,22.4],[119.01,22.39],[119.03,22.39],[119.05,22.38],[119.07,22.38],[119.08,22.37],[119.1,22.37],[119.12,22.36],[119.14,22.35],[119.16,22.35],[119.18,22.34],[119.2,22.34],[119.21,22.33],[119.23,22.33],[119.25,22.32],[119.27,22.32],[119.29,22.31],[119.31,22.31],[119.33,22.3],[119.34,22.29],[119.34,22.27],[119.35,22.25],[119.36,22.24],[119.37,22.22],[119.37,22.2],[119.38,22.19],[119.39,22.17],[119.4,22.16],[119.41,22.14],[119.41,22.12],[119.42,22.11],[119.43,22.09],[119.44,22.07],[119.44,22.06],[119.45,22.04],[119.46,22.02],[119.47,22.01],[119.48,21.99],[119.48,21.97],[119.49,21.96],[119.5,21.94],[119.51,21.92],[119.51,21.91],[119.52,21.89],[119.53,21.88],[119.54,21.86],[119.55,21.84],[119.55,21.83],[119.56,21.81],[119.57,21.79],[119.58,21.78],[119.6,21.77],[119.61,21.76],[119.63,21.74],[119.64,21.73],[119.65,21.72],[119.67,21.71],[119.68,21.7],[119.7,21.68],[119.71,21.67],[119.73,21.66],[119.74,21.65],[119.75,21.63],[119.77,21.62],[119.78,21.61],[119.8,21.6],[119.81,21.59],[119.83,21.57],[119.84,21.56],[119.85,21.55],[119.86,21.53],[119.87,21.52],[119.88,21.5],[119.89,21.49],[119.9,21.47],[119.91,21.46],[119.93,21.44],[119.94,21.43],[119.95,21.41],[119.96,21.4],[119.97,21.38],[119.98,21.37],[119.99,21.35],[120,21.34],[120.01,21.32],[120.02,21.31],[120.04,21.3],[120.05,21.28],[120.07,21.27],[120.08,21.26],[120.1,21.25],[120.11,21.24],[120.13,21.23],[120.14,21.22],[120.16,21.21],[120.17,21.2],[120.19,21.18],[120.2,21.17],[120.22,21.16],[120.23,21.15],[120.25,21.14],[120.27,21.14],[120.29,21.13],[120.31,21.13],[120.32,21.12],[120.34,21.12],[120.36,21.11],[120.38,21.11],[120.4,21.1],[120.42,21.1],[120.44,21.09],[120.45,21.09],[120.47,21.08],[120.49,21.08],[120.51,21.07],[120.53,21.07],[120.55,21.06],[120.57,21.06],[120.58,21.06],[120.6,21.05],[120.62,21.05],[120.64,21.04],[120.66,21.04],[120.68,21.03],[120.7,21.03],[120.71,21.02],[120.73,21.02],[120.75,21.01],[120.77,21.01],[120.79,21],[120.81,21],[120.83,21],[120.85,21],[120.87,21],[120.88,21],[120.9,21],[120.92,21],[120.94,21.01],[120.96,21.01],[120.98,21.01],[121,21.01],[121.02,21.01],[121.04,21.01],[121.06,21.01],[121.08,21.02],[121.09,21.02],[121.11,21.03],[121.13,21.04],[121.15,21.04],[121.17,21.05],[121.18,21.05],[121.2,21.06],[121.22,21.07],[121.24,21.07],[121.26,21.08],[121.28,21.09],[121.29,21.09],[121.31,21.09],[121.33,21.09],[121.35,21.09],[121.37,21.09],[121.39,21.08],[121.41,21.08],[121.43,21.08],[121.45,21.08],[121.47,21.08],[121.49,21.08],[121.51,21.08],[121.52,21.08],[121.54,21.07],[121.56,21.07],[121.58,21.07],[121.6,21.07],[121.62,21.07],[121.64,21.07],[121.66,21.07],[121.68,21.07],[121.7,21.07],[121.72,21.06],[121.74,21.06],[121.76,21.06],[121.77,21.06],[121.79,21.06],[121.81,21.07],[121.83,21.08],[121.85,21.08],[121.86,21.09],[121.88,21.1],[121.9,21.1],[121.92,21.11],[121.94,21.12],[121.95,21.13],[121.97,21.13],[121.99,21.14],[122.01,21.15],[122.02,21.15],[122.04,21.16],[122.06,21.17],[122.08,21.17],[122.09,21.18],[122.11,21.19],[122.13,21.2],[122.15,21.2],[122.17,21.21],[122.18,21.22],[122.2,21.23],[122.21,21.24],[122.22,21.26],[122.24,21.27],[122.25,21.28],[122.26,21.3],[122.27,21.31],[122.28,21.33],[122.3,21.34],[122.31,21.35],[122.32,21.37],[122.33,21.38],[122.35,21.39],[122.36,21.41],[122.37,21.42],[122.38,21.44],[122.4,21.45],[122.41,21.46],[122.42,21.48],[122.43,21.49],[122.45,21.5],[122.46,21.52],[122.47,21.53],[122.48,21.55],[122.49,21.57],[122.49,21.58],[122.5,21.6],[122.51,21.62],[122.51,21.63],[122.52,21.65],[122.53,21.67],[122.54,21.68],[122.54,21.7],[122.55,21.72],[122.56,21.73],[122.56,21.75],[122.56,21.77],[122.56,21.79],[122.57,21.8],[122.57,21.82],[122.57,21.84],[122.57,21.86],[122.57,21.88],[122.57,21.89],[122.57,21.91],[122.58,21.93],[122.58,21.95],[122.58,21.96],[122.58,21.98],[122.58,22],[122.57,22.02],[122.57,22.04],[122.56,22.05],[122.56,22.07],[122.56,22.09],[122.55,22.11],[122.55,22.12],[122.54,22.14],[122.54,22.16],[122.53,22.18],[122.53,22.19],[122.52,22.21],[122.52,22.23],[122.52,22.25],[122.51,22.26],[122.51,22.28],[122.5,22.3],[122.5,22.32],[122.49,22.33],[122.49,22.35],[122.49,22.37],[122.48,22.39],[122.48,22.4],[122.47,22.42],[122.47,22.44],[122.47,22.46],[122.47,22.47],[122.47,22.49],[122.47,22.51],[122.47,22.53],[122.47,22.55],[122.47,22.56],[122.47,22.58],[122.47,22.6],[122.48,22.62],[122.48,22.64],[122.48,22.65],[122.48,22.67],[122.48,22.69],[122.48,22.71],[122.48,22.73],[122.48,22.74],[122.48,22.76],[122.48,22.78],[122.48,22.8],[122.47,22.82],[122.47,22.83],[122.46,22.85],[122.46,22.87],[122.45,22.88],[122.45,22.9],[122.44,22.92],[122.43,22.94],[122.43,22.95],[122.42,22.97],[122.42,22.99],[122.41,23.01],[122.41,23.02],[122.4,23.04],[122.4,23.06],[122.41,23.08],[122.41,23.09],[122.42,23.11],[122.42,23.13],[122.43,23.15],[122.43,23.16],[122.43,23.18],[122.44,23.2],[122.44,23.22],[122.45,23.23],[122.45,23.25],[122.46,23.27],[122.46,23.28],[122.47,23.3],[122.47,23.32],[122.48,23.34],[122.48,23.35],[122.49,23.37],[122.49,23.39],[122.49,23.41],[122.5,23.42],[122.5,23.44],[122.51,23.46],[122.51,23.48],[122.52,23.49],[122.52,23.51],[122.53,23.53],[122.53,23.55],[122.54,23.56],[122.54,23.58],[122.55,23.6],[122.55,23.62],[122.56,23.63],[122.56,23.65],[122.56,23.67],[122.57,23.69],[122.57,23.7],[122.58,23.72],[122.58,23.74],[122.59,23.76],[122.59,23.77],[122.6,23.79],[122.6,23.81],[122.61,23.83],[122.61,23.84],[122.62,23.86],[122.63,23.88],[122.64,23.89],[122.65,23.91],[122.65,23.92],[122.66,23.94],[122.67,23.96],[122.68,23.97],[122.69,23.99],[122.7,24.01],[122.71,24.02],[122.71,24.04],[122.72,24.05],[122.73,24.07],[122.74,24.09],[122.75,24.1],[122.76,24.12],[122.77,24.14],[122.77,24.15],[122.78,24.17],[122.79,24.18],[122.8,24.2],[122.8,24.22],[122.81,24.24],[122.81,24.25],[122.82,24.27],[122.82,24.29],[122.83,24.31],[122.83,24.32],[122.84,24.34],[122.84,24.36],[122.85,24.38],[122.85,24.39],[122.86,24.41],[122.86,24.43],[122.87,24.45],[122.87,24.46],[122.88,24.48],[122.88,24.5],[122.89,24.51],[122.89,24.53],[122.9,24.55],[122.9,24.57],[122.91,24.58],[122.91,24.6],[122.92,24.62],[122.92,24.64],[122.93,24.65],[122.93,24.67],[122.93,24.69],[122.94,24.71],[122.94,24.72],[122.95,24.74],[122.95,24.76],[122.96,24.78],[122.96,24.79],[122.96,24.81],[122.97,24.83],[122.97,24.85],[122.98,24.86],[122.98,24.88],[122.99,24.9],[122.99,24.92],[122.99,24.94],[122.99,24.95],[122.99,24.97],[122.99,24.99],[122.99,25.01],[122.99,25.03],[122.99,25.04],[122.99,25.06],[122.98,25.08],[122.98,25.1],[122.98,25.12],[122.98,25.13],[122.98,25.15],[122.98,25.17],[122.98,25.19],[122.98,25.21],[122.97,25.22],[122.97,25.24],[122.96,25.25],[122.95,25.27],[122.94,25.29],[122.93,25.3],[122.92,25.32],[122.92,25.34],[122.91,25.35],[122.9,25.37],[122.89,25.39],[122.88,25.4],[122.88,25.42],[122.87,25.44],[122.86,25.45],[122.85,25.47],[122.84,25.48],[122.83,25.5],[122.83,25.52],[122.82,25.53],[122.8,25.55],[122.79,25.56],[122.78,25.57],[122.77,25.59],[122.75,25.6],[122.74,25.62],[122.73,25.63],[122.71,25.64],[122.7,25.66],[122.69,25.67],[122.68,25.68],[122.66,25.7],[122.65,25.71],[122.64,25.73],[122.62,25.74],[122.61,25.75],[122.6,25.77],[122.59,25.78],[122.57,25.79],[122.56,25.81],[122.55,25.82],[122.53,25.83],[122.52,25.85],[122.51,25.86],[122.49,25.87],[122.47,25.88],[122.45,25.89],[122.44,25.9],[122.42,25.9],[122.4,25.91],[122.38,25.92],[122.37,25.93],[122.35,25.94],[122.33,25.95],[122.31,25.95],[122.29,25.96],[122.28,25.97],[122.26,25.98],[122.24,25.99],[122.22,26],[122.21,26],[122.19,26.01],[122.17,26.02],[122.15,26.03],[122.14,26.04],[122.12,26.05],[122.1,26.05],[122.08,26.06],[122.06,26.07],[122.05,26.08],[122.03,26.09],[122.01,26.1],[121.99,26.11],[121.98,26.11],[121.96,26.12],[121.94,26.13],[121.92,26.14],[121.9,26.14],[121.88,26.15],[121.86,26.15],[121.84,26.15],[121.82,26.15],[121.8,26.16],[121.78,26.16],[121.77,26.16],[121.75,26.17],[121.73,26.17],[121.71,26.17],[121.69,26.17],[121.67,26.18],[121.65,26.18],[121.63,26.18],[121.61,26.19],[121.59,26.19],[121.57,26.19],[121.55,26.19],[121.53,26.2],[121.51,26.2],[121.51,26.22],[121.51,26.24],[121.51,26.26],[121.51,26.27],[121.51,26.29],[121.51,26.31],[121.51,26.33],[121.51,26.35],[121.5,26.36],[121.5,26.38],[121.5,26.4],[121.5,26.42],[121.5,26.44],[121.5,26.45],[121.5,26.47],[121.5,26.49],[121.5,26.51],[121.5,26.52],[121.49,26.54],[121.48,26.56],[121.48,26.58],[121.47,26.59],[121.47,26.61],[121.46,26.63],[121.46,26.65],[121.45,26.66],[121.45,26.68],[121.44,26.7],[121.43,26.72],[121.43,26.73],[121.42,26.75],[121.41,26.76],[121.39,26.78],[121.38,26.79],[121.37,26.81],[121.36,26.82],[121.35,26.84],[121.34,26.85],[121.33,26.87],[121.32,26.88],[121.31,26.9],[121.29,26.91],[121.28,26.93],[121.27,26.94],[121.26,26.96],[121.25,26.97],[121.23,26.98],[121.22,26.99],[121.2,27.01],[121.19,27.02],[121.17,27.03],[121.16,27.04],[121.14,27.05],[121.13,27.07],[121.11,27.08],[121.1,27.09],[121.08,27.1],[121.07,27.11],[121.05,27.12],[121.03,27.13],[121.01,27.14],[121,27.15],[120.98,27.15],[120.96,27.16],[120.94,27.17],[120.92,27.17],[120.9,27.18],[120.88,27.19],[120.87,27.2],[120.85,27.2],[120.83,27.21],[120.81,27.22],[120.79,27.23],[120.77,27.23],[120.75,27.24],[120.74,27.25],[120.72,27.25],[120.7,27.25],[120.68,27.25],[120.66,27.26],[120.64,27.26],[120.62,27.26],[120.6,27.26],[120.58,27.26],[120.56,27.27],[120.54,27.27]],[[120.28,27.26]],[[120.22,27.24],[120.2,27.24],[120.18,27.24]]];
+SEA_WARN_100KM.forEach(ring=>{
+  L.polyline(ring.map(c=>[c[1],c[0]]), {
+    color:'#ffffff', weight:2, opacity:0.95, dashArray:'8 6', interactive:false, pane:'boundaryPane'
+  }).addTo(seaWarnLayer);
+});
+
+// ---------------------------------------------------------------------
+// 縣市受暴風圈影響變色：暴風圈（圓）碰到縣市多邊形就算。
+// 10 級風圈碰到 → 黃色；只有 7 級風圈碰到 → 深藍色；否則維持灰色。
+// 為了播放時每一幀都能算，縣市外環先抽稀（約 120 點）並預存 bbox。
+// ---------------------------------------------------------------------
+const LAND_GREY = '#8b909a', HIT7_COLOR = '#1e40af', HIT10_COLOR = '#facc15';
+let countyHitItems = [];   // {layer, ring:[[lon,lat]...], bbox:[w,s,e,n], state}
+function prepareCountyHit(geoLayer){
+  geoLayer.eachLayer(l=>{
+    const g = l.feature && l.feature.geometry; if (!g) return;
+    const polys = g.type==='Polygon' ? [g.coordinates] : g.coordinates;
+    const rings = polys.map(pg=>{
+      const r = pg[0], step = Math.max(1, Math.ceil(r.length/120));
+      const out = []; for (let i=0;i<r.length;i+=step) out.push(r[i]);
+      if (out[out.length-1]!==r[r.length-1]) out.push(r[r.length-1]);
+      return out;
+    });
+    let w=999,s=999,e=-999,n=-999;
+    rings.forEach(r=>r.forEach(c=>{ w=Math.min(w,c[0]); e=Math.max(e,c[0]); s=Math.min(s,c[1]); n=Math.max(n,c[1]); }));
+    countyHitItems.push({layer:l, rings, bbox:[w,s,e,n], state:0});
+  });
+}
+function ringHit(ring, cLon, cLat, rKm){
+  const kx = 111.32*Math.cos(cLat*Math.PI/180), ky = 110.57;
+  let inside = false, minD2 = Infinity;
+  for (let i=0, j=ring.length-1; i<ring.length; j=i++){
+    const ax=(ring[j][0]-cLon)*kx, ay=(ring[j][1]-cLat)*ky, bx=(ring[i][0]-cLon)*kx, by=(ring[i][1]-cLat)*ky;
+    if ((ay>0)!==(by>0) && 0 < ax + (bx-ax)*(0-ay)/(by-ay)) inside = !inside;
+    const dx=bx-ax, dy=by-ay, l2=dx*dx+dy*dy;
+    let t = l2>0 ? -(ax*dx+ay*dy)/l2 : 0; t = Math.max(0, Math.min(1, t));
+    const px=ax+t*dx, py=ay+t*dy, d2=px*px+py*py;
+    if (d2<minD2) minD2=d2;
+  }
+  return inside || minD2 <= rKm*rKm;
+}
+function countyTouched(item, cLon, cLat, rKm){
+  if (!rKm) return false;
+  const kx = 111.32*Math.cos(cLat*Math.PI/180);
+  const [w,s,e,n] = item.bbox;
+  if (cLon < w - rKm/kx || cLon > e + rKm/kx || cLat < s - rKm/110.57 || cLat > n + rKm/110.57) return false;
+  return item.rings.some(r=>ringHit(r, cLon, cLat, rKm));
+}
+// ll: [lat,lon]；r7/r10: 公里（沒有就傳 null 表示全部還原）
+function updateCountyHits(ll, r7, r10){
+  if (!countyHitItems.length) return;
+  countyHitItems.forEach(it=>{
+    let st = 0;
+    if (ll && layers.countyHit){
+      if (countyTouched(it, ll[1], ll[0], r10)) st = 2;
+      else if (countyTouched(it, ll[1], ll[0], r7)) st = 1;
+    }
+    if (st !== it.state){
+      it.state = st;
+      it.layer.setStyle({ fillColor: st===2 ? HIT10_COLOR : st===1 ? HIT7_COLOR : LAND_GREY });
+    }
+  });
+}
+
+// ---------------------------------------------------------------------
+// 狀態
+// ---------------------------------------------------------------------
+let TYPHOONS = [];
+let currentTyphoon = TYPHOONS[0];
+let currentTimeMs = null; // 目前顯示的「虛擬時間」（毫秒），可以是任兩個資料點之間的任意時刻
+let layers = { track:true, storm:true, cone:true, forecastMode:false, grid:true, cities:true, countryBorder:true, twCounty:true, multiRoute:false, seaWarn:true, countyHit:true, jmaSat:false, jmaTrueColor:false, jmaInfrared:false };
+updateCityVisibility();
+
+function nowIndex(track){
+  const i = track.findIndex(p=>p.isNow);
+  return i===-1 ? Math.floor(track.length/2) : i;
+}
+
+// ---------------------------------------------------------------------
+// 內插：給任意時間 timeMs，回傳當下的位置／風速／暴風圈大小。
+// 這是「連續移動」的核心——時間軸不再是「第幾個資料點」，而是真的
+// 時間刻度，兩個資料點（例如 02:00 和 08:00）之間任何時刻都能算出
+// 合理的內插位置與大小，不是只能停在資料點上。
+// ---------------------------------------------------------------------
+function lerp(a,b,f){ if(a==null||b==null) return f<0.5?(a??b??null):(b??a??null); return a+(b-a)*f; }
+// 暴風圈半徑專用：只要其中一端有資料，缺資料的那端就當作 0 來內插，
+// 這樣颱風要轉性、暴風圈快消失之前，圈會平滑縮小到 0，
+// 而不是資料一斷就整個圈瞬間消失不見。
+function lerpRadius(a,b,f){
+  if (a==null && b==null) return null;
+  const av = a==null ? 0 : a, bv = b==null ? 0 : b;
+  return av + (bv-av)*f;
+}
+function hexToRgb(hex){ const n=parseInt(hex.replace('#',''),16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; }
+function blendColor(hex1,hex2,f){
+  const a=hexToRgb(hex1), b=hexToRgb(hex2);
+  const r=Math.round(a.r+(b.r-a.r)*f), g=Math.round(a.g+(b.g-a.g)*f), bl=Math.round(a.b+(b.b-a.b)*f);
+  return `rgb(${r},${g},${bl})`;
+}
+function interpolateTrack(track, timeMs){
+  if (timeMs <= track[0].ts) return Object.assign({}, track[0], {_color: categoryColor(track[0].cat)});
+  const last = track[track.length-1];
+  if (timeMs >= last.ts) return Object.assign({}, last, {_color: categoryColor(last.cat)});
+  for (let i=0; i<track.length-1; i++){
+    const a = track[i], b = track[i+1];
+    if (a.ts==null || b.ts==null || b.ts===a.ts) continue;
+    if (timeMs>=a.ts && timeMs<=b.ts){
+      const f = (timeMs-a.ts)/(b.ts-a.ts);
+      return {
+        t: formatDate(new Date(timeMs)), ts: timeMs,
+        lat: lerp(a.lat,b.lat,f), lon: lerp(a.lon,b.lon,f),
+        wind: lerp(a.wind,b.wind,f), gust: lerp(a.gust,b.gust,f), windUnit: a.windUnit||b.windUnit,
+        cat: f<0.5 ? a.cat : b.cat,
+        move: f<0.5 ? a.move : b.move,
+        stormRadiusKm: lerpRadius(a.stormRadiusKm,b.stormRadiusKm,f),
+        stormRadius25Km: lerpRadius(a.stormRadius25Km,b.stormRadius25Km,f),
+        coneRadiusKm: lerp(a.coneRadiusKm,b.coneRadiusKm,f),
+        isNow:false,
+        _color: blendColor(categoryColor(a.cat), categoryColor(b.cat), f)
+      };
+    }
+  }
+  return Object.assign({}, track[0], {_color: categoryColor(track[0].cat)});
+}
+
+function renderTyphoon(){
+  if (!currentTyphoon) return;
+  stopPlay();
+  const track = currentTyphoon.track;
+  const nIdx = nowIndex(track);
+  d3set("#typhoon-name", currentTyphoon.name);
+  const slider = document.getElementById('tl-slider');
+  slider.min = track[0].ts;
+  slider.max = track[track.length-1].ts;
+  slider.step = 60000; // 1 分鐘，滑桿本身就是連續時間刻度
+  if (currentTimeMs==null || currentTimeMs<track[0].ts || currentTimeMs>track[track.length-1].ts){
+    currentTimeMs = track[nIdx].ts;
+  }
+  slider.value = currentTimeMs;
+
+  trackLayer.clearLayers();
+  if (layers.track){
+    // 路徑依強度分段變色：每一段用該段起點的強度決定顏色，
+    // 「現在」之前是實線，之後（預測路徑）是虛線。
+    for (let i=0; i<track.length-1; i++){
+      const a = track[i], b = track[i+1];
+      const color = categoryColor(a.cat);
+      const isFuture = i >= nIdx;
+      trackLayer.addLayer(L.polyline([[a.lat,a.lon],[b.lat,b.lon]], {
+        color, weight:2.6, opacity:0.95, dashArray: isFuture ? '2 7' : null
+      }));
+    }
+    // 路徑上的點：統一用白色實點
+    track.forEach((p)=>{
+      const marker = L.circleMarker([p.lat,p.lon], {radius:3.2, color:'#081420', weight:0.8, fillColor:'#ffffff', fillOpacity:1});
+      marker.on('click', ()=>{ stopPlay(); renderAtTime(p.ts); });
+      trackLayer.addLayer(marker);
+    });
+  }
+
+  coneLayer.clearLayers();
+  if (layers.cone){
+    // 每個預測時間點各自的「70% 機率不確定圈」半徑，起點（現在）本身
+    // 是已知位置、沒有不確定性，所以視為半徑 0 的一個點，其餘時間點
+    // 用氣象署發布的不確定圈半徑（Radius70PercentProbability），
+    // 再用外切線把每個圓連起來——圓本身不畫出來，只畫連出來的外包絡線。
+    const conePts = track.slice(nIdx).filter((p,i)=> i===0 || p.coneRadiusKm!=null);
+    if (conePts.length>=2){
+      const refLon = conePts[0].lon, refLat = conePts[0].lat;
+      const circlesKm = conePts.map((p,i)=>{
+        const {x,y} = kmProject(p.lon, p.lat, refLon, refLat);
+        const r = i===0 ? 0 : (p.coneRadiusKm || 0);
+        return {x,y,r};
+      });
+      const polyKm = buildConePolygonPoints(circlesKm, 20);
+      const latlngs = polyKm.map(([x,y])=>{ const ll = kmUnproject(x,y,refLon,refLat); return [ll.lat, ll.lon]; });
+      coneLayer.addLayer(L.polygon(latlngs, {color:'#f5a623', weight:1.3, fillColor:'#f5a623', fillOpacity:0.14, dashArray:'4 4'}));
+    }
+  }
+
+  renderForecastMode(track, nIdx);
+  renderAtTime(currentTimeMs);
+}
+
+// ---------------------------------------------------------------------
+// 預報模式：一次把「現在」之後每個預測點的暴風圈（7 級風）都畫出來，
+// 並標示時間與強度等級，方便一眼看到整段預報的變化。
+// ---------------------------------------------------------------------
+// 依路徑局部方向算出每個點的引線角度：垂直於路徑前進方向，往路徑
+// 彎曲的外側拉出去，這樣弧度大的地方引線不容易互相穿過或指到別的點。
+// 只有轉彎角度夠明顯時才決定要往哪一側拉，接近直線的路段沿用前一個
+// 點的選擇，避免浮點數雜訊讓相鄰點的方向忽然跳到反方向。
+const LABEL_CURVATURE_THRESHOLD = 0.25;
+function computePathLabelBearing(prev, cur, next, lastSide){
+  const dLon = next.lon - prev.lon, dLat = next.lat - prev.lat;
+  const pathBearing = Math.atan2(dLon, dLat) * 180/Math.PI;
+  const v1x = cur.lon-prev.lon, v1y = cur.lat-prev.lat;
+  const v2x = next.lon-cur.lon, v2y = next.lat-cur.lat;
+  const mag1 = Math.hypot(v1x,v1y), mag2 = Math.hypot(v2x,v2y);
+  const cross = v1x*v2y - v1y*v2x;
+  const normCurv = (mag1>1e-9 && mag2>1e-9) ? cross/(mag1*mag2) : 0;
+  let side = lastSide;
+  if (Math.abs(normCurv) > LABEL_CURVATURE_THRESHOLD){
+    side = normCurv >= 0 ? 1 : -1;
+  }
+  let bearing = pathBearing + side*90;
+  bearing = ((bearing % 360) + 360) % 360;
+  return { bearing, side };
+}
+
+function renderForecastMode(track, nIdx){
+  forecastLayer.clearLayers();
+  if (!layers.forecastMode) return;
+  const pts = track.slice(nIdx);
+  let side = 1; // 從「現在」那一點開始，預設先往路徑彎曲的其中一側
+  pts.forEach((p,i)=>{
+    const color = categoryColor(p.cat);
+    if (p.stormRadiusKm){
+      forecastLayer.addLayer(L.circle([p.lat,p.lon], {
+        radius: p.stormRadiusKm*1000, color, weight:1.2, fillColor:color, fillOpacity:0.10, dashArray:'3 4'
+      }));
+    } else {
+      forecastLayer.addLayer(L.circleMarker([p.lat,p.lon], {radius:3, color, weight:1, fillColor:color, fillOpacity:1}));
+    }
+    const prev = pts[Math.max(0,i-1)], next = pts[Math.min(pts.length-1,i+1)];
+    const r = computePathLabelBearing(prev, p, next, side);
+    side = r.side;
+    const innerHtml = `<span style="color:${color}">${p.t}<br>${p.cat}</span>`;
+    forecastLayer.addLayer(L.marker([p.lat,p.lon], {
+      interactive:false,
+      icon: L.divIcon({
+        className:'time-label-icon forecast-label-icon',
+        html: buildLeaderLabelHtml(r.bearing, TIME_LABEL_LINE_LEN, innerHtml),
+        iconSize:[0,0], iconAnchor:[0,0]
+      })
+    }));
+  });
+}
+
+// ---------------------------------------------------------------------
+// 颱風圖示＋暴風圈：搬到指定「虛擬時間」對應的內插位置。
+// 不管是直接拖時間軸、點路徑上的點、還是播放動畫每一格，
+// 全部都走這個函式，所以任何時刻的位置與大小永遠是一致算出來的。
+// ---------------------------------------------------------------------
+function renderAtTime(timeMs){
+  if (!currentTyphoon) return;
+  currentTimeMs = timeMs;
+  const track = currentTyphoon.track;
+  const p = interpolateTrack(track, timeMs);
+  const ll = [p.lat, p.lon];
+  const nowPt = track[nowIndex(track)];
+  const nowTs = nowPt.ts;
+
+  eyeCore.setLatLng(ll);
+  eyeCore.setStyle({ fillColor: p._color });
+  timeLabelMarker.setLatLng(ll);
+  setTimeLabelText(p.t);
+  if (eyeCore._path) eyeCore._path.classList.toggle('eye-pulse', Math.abs(timeMs-nowTs) < 60000);
+
+  updateStormCircle(stormCircle7, ll, layers.storm ? p.stormRadiusKm : null);
+  updateStormCircle(stormCircle10, ll, layers.storm ? p.stormRadius25Km : null);
+  updateCountyHits(ll, layers.storm ? p.stormRadiusKm : null, layers.storm ? p.stormRadius25Km : null);
+
+  // 固定觀測暴風圈：只在時間軸捲到「現在」之後（預測時段）才顯示，
+  // 用來對照移動中的預測暴風圈跟最後一次觀測的暴風圈差多少。
+  const nowLL = [nowPt.lat, nowPt.lon];
+  if (timeMs > nowTs + 60000 && layers.storm){
+    updateStormCircle(nowStormCircle7, nowLL, nowPt.stormRadiusKm);
+    updateStormCircle(nowStormCircle10, nowLL, nowPt.stormRadius25Km);
+  } else {
+    updateStormCircle(nowStormCircle7, nowLL, null);
+    updateStormCircle(nowStormCircle10, nowLL, null);
+  }
+
+  document.getElementById('tl-slider').value = timeMs;
+  updateReadout(p, Math.abs(timeMs-nowTs) < 60000);
+}
+function updateStormCircle(circle, ll, radiusKm){
+  if (radiusKm){
+    circle.setLatLng(ll);
+    circle.setRadius(radiusKm*1000);
+    if (!stormLayer.hasLayer(circle)) stormLayer.addLayer(circle);
+  } else if (stormLayer.hasLayer(circle)){
+    stormLayer.removeLayer(circle);
+  }
+}
+
+// ---------------------------------------------------------------------
+// 用同一個 requestAnimationFrame 迴圈把「虛擬時間」連續往前（或往後）推，
+// 每一影格都重新內插位置——這就是連續移動的核心，不是一段一段跳著補間。
+// 用在「上一步／下一步」（播到最近的下一個/上一個實際資料點）與自動播放
+// （一路播到最後一個點）。拖曳時間軸則是直接跳，維持即時回饋感。
+// ---------------------------------------------------------------------
+let playbackSpeed = 1; // 1x / 2x / 4x（連續模式用）；逐時模式不使用這個值
+const BASE_HOURS_PER_SEC = 2.2; // 1x 時，每經過 1 秒真實時間＝颱風時間前進 2.2 小時
+const PLAYBACK_MODES = ['1x','2x','4x','逐時'];
+let playbackModeIndex = 0;
+let playRAF = null;
+let playTimer = null;
+let playRunning = false;
+function stopPlay(){
+  playRunning = false;
+  if (playRAF){ cancelAnimationFrame(playRAF); playRAF = null; }
+  if (playTimer){ clearTimeout(playTimer); playTimer = null; }
+  const btn = document.getElementById('tl-play');
+  if (btn) btn.textContent = '▶';
+}
+function playToTime(targetMs, onDone){
+  if (!currentTyphoon) return;
+  playRunning = true;
+  const direction = targetMs >= currentTimeMs ? 1 : -1;
+  let lastWall = performance.now();
+  function tick(now){
+    if (!playRunning) return;
+    const dtReal = now - lastWall;
+    lastWall = now;
+    const deltaVirtual = BASE_HOURS_PER_SEC * playbackSpeed * 3600000 * (dtReal/1000) * direction;
+    let next = currentTimeMs + deltaVirtual;
+    const reached = direction>0 ? next>=targetMs : next<=targetMs;
+    if (reached){
+      renderAtTime(targetMs);
+      playRAF = null; playRunning = false;
+      if (onDone) onDone();
+      return;
+    }
+    renderAtTime(next);
+    playRAF = requestAnimationFrame(tick);
+  }
+  playRAF = requestAnimationFrame(tick);
+}
+// 逐時播放：跟連續補間完全不同的邏輯，不用 requestAnimationFrame 平滑推進，
+// 而是每停頓固定時間就直接跳到「下一個整點」，一格一格跳，像時鐘一樣，
+// 不會在整點之間內插出中間的畫面。
+const HOURLY_STEP_PAUSE_MS = 700; // 每跳一步之後停留的時間
+function nextWholeHourTs(ms){
+  const d = new Date(ms);
+  d.setMinutes(0,0,0);
+  return d.getTime() + 3600000; // 下一個整點
+}
+function startPlayHourly(){
+  if (!currentTyphoon) return;
+  playRunning = true;
+  const track = currentTyphoon.track;
+  const lastTs = track[track.length-1].ts;
+  document.getElementById('tl-play').textContent = '⏸';
+  function step(){
+    if (!playRunning) return;
+    if (currentTimeMs >= lastTs){ stopPlay(); return; }
+    const target = Math.min(nextWholeHourTs(currentTimeMs), lastTs);
+    renderAtTime(target);
+    playTimer = setTimeout(()=>{ if (playRunning) step(); }, HOURLY_STEP_PAUSE_MS);
+  }
+  step();
+}
+function startPlay(){
+  if (!currentTyphoon) return;
+  const track = currentTyphoon.track;
+  const last = track[track.length-1].ts;
+  if (currentTimeMs >= last) renderAtTime(track[0].ts);
+  const mode = PLAYBACK_MODES[playbackModeIndex];
+  if (mode === '逐時'){
+    startPlayHourly();
+  } else {
+    document.getElementById('tl-play').textContent = '⏸';
+    playToTime(last, ()=>{ document.getElementById('tl-play').textContent = '▶'; });
+  }
+}
+function findNextPointTs(track, ms){
+  for (let i=0;i<track.length;i++){ if (track[i].ts > ms+1000) return track[i].ts; }
+  return track[track.length-1].ts;
+}
+function findPrevPointTs(track, ms){
+  for (let i=track.length-1;i>=0;i--){ if (track[i].ts < ms-1000) return track[i].ts; }
+  return track[0].ts;
+}
+
+function fmt(n, digits){ return (typeof n === 'number' && !isNaN(n)) ? n.toFixed(digits==null?0:digits) : '—'; }
+
+function updateReadout(p, isNear){
+  if (!p) return;
+  d3set("#r-time", p.t + (isNear ? "（現在）" : ""));
+  d3set("#r-num", currentTyphoon.num || '—');
+  d3set("#r-cat", p.cat || '—');
+  d3set("#r-pos", fmt(p.lat,1)+"°N "+fmt(p.lon,1)+"°E");
+  d3set("#r-wind", p.wind!=null ? fmt(p.wind,0) + (p.windUnit||'km/h') : '—');
+  d3set("#r-gust", p.gust!=null ? fmt(p.gust,0) + (p.windUnit||'km/h') : '—');
+  d3set("#r-move", p.move || (p.coneRadiusKm!=null ? "預測路徑" : "—"));
+  d3set("#tl-time", p.t);
+}
+function d3set(sel, text){ const el = document.querySelector(sel); if (el) el.textContent = text; }
+
+// ---------------------------------------------------------------------
+// 控制項
+// ---------------------------------------------------------------------
+function populateSelect(){
+  const sel = document.getElementById('typhoon-select');
+  sel.innerHTML = '';
+  TYPHOONS.forEach(t=>{
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = (t.isLive? '🔴 ' : '') + (t.num? t.num+' ' : '') + t.name;
+    sel.appendChild(opt);
+  });
+}
+document.getElementById('typhoon-select').addEventListener('change', function(){
+  stopPlay();
+  currentTyphoon = TYPHOONS.find(t=>t.id===this.value) || TYPHOONS[0];
+  currentTimeMs = null;
+  renderTyphoon();
+  fitToTyphoon(currentTyphoon);
+});
+
+document.getElementById('tl-slider').addEventListener('input', function(){
+  stopPlay();
+  renderAtTime(+this.value);
+});
+document.getElementById('tl-prev').addEventListener('click', ()=>{
+  stopPlay();
+  playToTime(findPrevPointTs(currentTyphoon.track, currentTimeMs));
+});
+document.getElementById('tl-next').addEventListener('click', ()=>{
+  stopPlay();
+  playToTime(findNextPointTs(currentTyphoon.track, currentTimeMs));
+});
+document.getElementById('tl-play').addEventListener('click', ()=>{
+  if (playRunning) stopPlay(); else startPlay();
+});
+document.getElementById('tl-speed').addEventListener('click', function(){
+  const wasPlaying = playRunning;
+  stopPlay();
+  playbackModeIndex = (playbackModeIndex + 1) % PLAYBACK_MODES.length;
+  const mode = PLAYBACK_MODES[playbackModeIndex];
+  if (mode !== '逐時') playbackSpeed = parseInt(mode); // '1x'/'2x'/'4x' -> 1/2/4
+  this.textContent = mode;
+  if (wasPlaying) startPlay(); // 播放中切換模式，直接用新模式接著播，不留在舊模式的狀態
+});
+
+// ---------------------------------------------------------------------
+// 各國路徑模式：NCDR 多國颱風預報路徑 KML
+// https://satis.ncdr.nat.gov.tw/kml/multityroute.aspx
+// 每個機構（如 HKO）一條彩色路線 + 各預報時間點（styleUrl 例如 #HKO_120 = 120 小時）。
+// 第一次開啟才抓資料；直接連線被跨來源限制擋下時，走和氣象署資料相同的代理備援。
+// 回傳若是 KMZ（zip），會載入 JSZip 解壓縮。
+// ---------------------------------------------------------------------
+const MULTI_ROUTE_URL = 'https://satis.ncdr.nat.gov.tw/kml/multityroute.aspx';
+// 由 GitHub Actions + Puppeteer 定時抓回來存在你 repo 的 KML（raw.githubusercontent.com 允許跨來源讀取）。
+// 填入形如 https://raw.githubusercontent.com/<帳號>/<repo>/main/data/multityroute.kml ；留空則跳過。
+const MULTI_ROUTE_DATA_URL = '';
+// 即時連線全部失敗時的備援快照（2026/10/22 20 時發佈的資料，取自 NCDR 回傳的 KML，已精簡）。
+// 只是讓圖層至少有東西可看；顯示時會明確標示「快照」，不代表目前最新預報。
+const MULTI_ROUTE_SNAPSHOT = "<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:kml=\"http://www.opengis.net/kml/2.2\" xmlns:atom=\"http://www.w3.org/2005/Atom\"><Document><Folder><name>HKO</name><Placemark><name>HKO發佈時間:10/22 20</name><description>HKO發佈時間:10/22 20</description><styleUrl>#HKO_00</styleUrl><Point><coordinates>124.90,21.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#HKO_24</styleUrl><Point><coordinates>122.80,24.5,0</coordinates></Point></Placemark><Placemark><styleUrl>#HKO_48</styleUrl><Point><coordinates>124.09,28.39,0</coordinates></Point></Placemark><Placemark><styleUrl>#HKO_72</styleUrl><Point><coordinates>130.30,32.70,0</coordinates></Point></Placemark><Placemark><styleUrl>#HKO_96</styleUrl><Point><coordinates>144.19,35.5,0</coordinates></Point></Placemark><Placemark><name>HKO</name><Style id=\"HKOroute\"><LineStyle><color>FF2F00E6</color><width>4</width></LineStyle></Style><styleUrl>#HKOroute</styleUrl><LineString><coordinates>124.9,21.2,0 122.8,24.5,0 124.1,28.4,0 130.3,32.7,0 144.2,35.5,0 </coordinates></LineString></Placemark></Folder><Folder><name>JTWC</name><Placemark><name>JTWC發佈時間:10/22 20</name><description>JTWC發佈時間:10/22 20</description><styleUrl>#JTWC_00</styleUrl><Point><coordinates>124.90,21.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#JTWC_24</styleUrl><Point><coordinates>122.90,24.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#JTWC_48</styleUrl><Point><coordinates>124.59,28.79,0</coordinates></Point></Placemark><Placemark><styleUrl>#JTWC_72</styleUrl><Point><coordinates>130.5,32.0999984741211,0</coordinates></Point></Placemark><Placemark><styleUrl>#JTWC_96</styleUrl><Point><coordinates>137.89,32.90,0</coordinates></Point></Placemark><Placemark><name>JTWC</name><Style id=\"JTWCroute\"><LineStyle><color>FF0099F3</color><width>4</width></LineStyle></Style><styleUrl>#JTWCroute</styleUrl><LineString><coordinates>124.9,21.2,0 122.9,24.2,0 124.6,28.8,0 130.5,32.1,0 137.9,32.9,0 </coordinates></LineString></Placemark></Folder><Folder><name>JMA</name><Placemark><name>JMA發佈時間:10/22 20</name><description>JMA發佈時間:10/22 20</description><styleUrl>#JMA_00</styleUrl><Point><coordinates>124.90,21.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#JMA_24</styleUrl><Point><coordinates>122.40,24.5,0</coordinates></Point></Placemark><Placemark><styleUrl>#JMA_48</styleUrl><Point><coordinates>123.40,27.79,0</coordinates></Point></Placemark><Placemark><styleUrl>#JMA_72</styleUrl><Point><coordinates>127.30,31.79,0</coordinates></Point></Placemark><Placemark><styleUrl>#JMA_96</styleUrl><Point><coordinates>136.60,34.59,0</coordinates></Point></Placemark><Placemark><name>JMA</name><Style id=\"JMAroute\"><LineStyle><color>FFE9A700</color><width>4</width></LineStyle></Style><styleUrl>#JMAroute</styleUrl><LineString><coordinates>124.9,21.2,0 122.4,24.5,0 123.4,27.8,0 127.3,31.8,0 136.6,34.6,0 </coordinates></LineString></Placemark></Folder><Folder><name>NMC</name><Placemark><name>NMC發佈時間:10/21 11</name><description>NMC發佈時間:10/21 11</description><styleUrl>#NMC_00</styleUrl><Point><coordinates>129.60,18.29,0</coordinates></Point></Placemark><Placemark><styleUrl>#NMC_24</styleUrl><Point><coordinates>126,20.7000007629395,0</coordinates></Point></Placemark><Placemark><styleUrl>#NMC_48</styleUrl><Point><coordinates>123.80,23.60,0</coordinates></Point></Placemark><Placemark><styleUrl>#NMC_72</styleUrl><Point><coordinates>123.90,27.79,0</coordinates></Point></Placemark><Placemark><styleUrl>#NMC_96</styleUrl><Point><coordinates>128.69,32.29,0</coordinates></Point></Placemark><Placemark><styleUrl>#NMC_120</styleUrl><Point><coordinates>137,35.2999992370605,0</coordinates></Point></Placemark><Placemark><name>NMC</name><Style id=\"NMCroute\"><LineStyle><color>FF9955E7</color><width>4</width></LineStyle></Style><styleUrl>#NMCroute</styleUrl><LineString><coordinates>129.6,18.3,0 126,20.7,0 123.8,23.6,0 123.9,27.8,0 128.7,32.3,0 137,35.3,0 </coordinates></LineString></Placemark></Folder><Folder><name>CWA</name><Placemark><name>CWA發佈時間:10/22 20</name><description>CWA發佈時間:10/22 20</description><styleUrl>#CWA_00</styleUrl><Point><coordinates>124.90,21.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#CWA_24</styleUrl><Point><coordinates>122.80,24.39,0</coordinates></Point></Placemark><Placemark><styleUrl>#CWA_48</styleUrl><Point><coordinates>123.40,27.60,0</coordinates></Point></Placemark><Placemark><styleUrl>#CWA_72</styleUrl><Point><coordinates>127.19,31.70,0</coordinates></Point></Placemark><Placemark><styleUrl>#CWA_96</styleUrl><Point><coordinates>132.30,33.59,0</coordinates></Point></Placemark><Placemark><name>CWA</name><Style id=\"CWAroute\"><LineStyle><color>FFB8734F</color><width>4</width></LineStyle></Style><styleUrl>#CWAroute</styleUrl><LineString><coordinates>124.9,21.2,0 122.8,24.4,0 123.4,27.6,0 127.2,31.7,0 132.3,33.6,0 </coordinates></LineString></Placemark></Folder><Folder><name>KMA</name><Placemark><name>KMA發佈時間:10/22 20</name><description>KMA發佈時間:10/22 20</description><styleUrl>#KMA_00</styleUrl><Point><coordinates>124.90,21.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#KMA_24</styleUrl><Point><coordinates>122.69,24.5,0</coordinates></Point></Placemark><Placemark><styleUrl>#KMA_48</styleUrl><Point><coordinates>123.69,27.79,0</coordinates></Point></Placemark><Placemark><styleUrl>#KMA_72</styleUrl><Point><coordinates>128.10,31.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#KMA_96</styleUrl><Point><coordinates>136.30,34.29,0</coordinates></Point></Placemark><Placemark><name>KMA</name><Style id=\"KMAroute\"><LineStyle><color>FF2FB763</color><width>4</width></LineStyle></Style><styleUrl>#KMAroute</styleUrl><LineString><coordinates>124.9,21.2,0 122.7,24.5,0 123.7,27.8,0 128.1,31.2,0 136.3,34.3,0 </coordinates></LineString></Placemark></Folder></Document></kml>";
+const multiRouteLayer = L.layerGroup();
+let multiRouteLoaded = false, multiRouteLoading = false;
+
+async function fetchKmlText(url, fails){
+  const attempts = [{ l:'直接連線', u:url }, ...CORS_PROXIES.map((fn,i)=>({ l:'代理'+(i+1), u:fn(url) }))];
+  for (const a of attempts){
+    try{
+      const res = await fetch(a.u, { cache:'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const buf = new Uint8Array(await res.arrayBuffer());
+      if (buf[0]===0x50 && buf[1]===0x4B){ // 'PK' → KMZ
+        if (!window.JSZip) await new Promise((ok,ng)=>{ const sc=document.createElement('script');
+          sc.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; sc.onload=ok; sc.onerror=()=>ng(new Error('JSZip 載入失敗')); document.head.appendChild(sc); });
+        const zip = await JSZip.loadAsync(buf);
+        const name = Object.keys(zip.files).find(n=>/\.kml$/i.test(n));
+        if (!name) throw new Error('KMZ 內找不到 KML');
+        return await zip.files[name].async('string');
+      }
+      const txt = new TextDecoder('utf-8').decode(buf);
+      if (!/<kml|<Placemark/i.test(txt)) throw new Error('回傳內容不是 KML');
+      return txt;
+    }catch(e){ console.warn('多國路徑 KML 讀取失敗（'+a.l+'）：', e); if (fails) fails.push(a.l+'：'+e.message); }
+  }
+  return null;
+}
+// KML 顏色是 aabbggrr
+function kmlColor(c){
+  c = (c||'').trim();
+  if (!/^[0-9a-fA-F]{8}$/.test(c)) return { color:'#ffffff', opacity:1 };
+  return { color:'#'+c.slice(6,8)+c.slice(4,6)+c.slice(2,4), opacity: parseInt(c.slice(0,2),16)/255 };
+}
+const kmlKids = (el, tag) => [...el.children].filter(n=>n.localName===tag);
+const kmlText = (el, tag) => { const k = kmlKids(el, tag)[0]; return k ? k.textContent.trim() : ''; };
+function parseKmlCoords(txt){
+  return txt.trim().split(/\s+/).map(t=>t.split(',').map(Number)).filter(a=>a.length>=2 && isFinite(a[0]) && isFinite(a[1])).map(a=>[a[1],a[0]]);
+}
+function renderMultiRoute(kmlText0){
+  const doc = new DOMParser().parseFromString(kmlText0, 'text/xml');
+  if (doc.querySelector('parsererror')) throw new Error('KML 解析失敗');
+  const legendGroups = []; // {title, rows:[{name,color}]}
+  let nLines = 0;
+  function walk(node, folderName){
+    const placemarks = kmlKids(node,'Placemark');
+    const lines = [], points = [];
+    placemarks.forEach(pm=>{
+      const name = kmlText(pm,'name');
+      const style = kmlKids(pm,'Style')[0];
+      const ls = style && kmlKids(style,'LineStyle')[0];
+      const line = pm.getElementsByTagName('LineString')[0];
+      const pt = pm.getElementsByTagName('Point')[0];
+      if (line){
+        const co = line.getElementsByTagName('coordinates')[0];
+        const col = kmlColor(ls ? kmlText(ls,'color') : '');
+        lines.push({ name, latlngs: co ? parseKmlCoords(co.textContent) : [], ...col, width: ls ? (+kmlText(ls,'width')||3) : 3 });
+      } else if (pt){
+        const co = pt.getElementsByTagName('coordinates')[0];
+        const ll = co ? parseKmlCoords(co.textContent)[0] : null;
+        const su = kmlText(pm,'styleUrl');
+        const m = su.match(/#?(.+?)_(?:nb)?(\d+)$/);
+        if (ll) points.push({ name, ll, agency: m ? m[1] : name, hour: m ? +m[2] : null, desc: kmlText(pm,'description') });
+      }
+    });
+    const colorOf = {};
+    lines.forEach(l=>{ if (l.latlngs.length>1){
+      colorOf[l.name] = l.color;
+      L.polyline(l.latlngs, { color:l.color, weight:Math.min(l.width,4), opacity:Math.max(l.opacity,0.6), interactive:true }).bindTooltip((folderName?folderName+' ':'')+l.name, {sticky:true}).addTo(multiRouteLayer);
+      nLines++;
+    }});
+    points.forEach(pp=>{
+      const color = colorOf[pp.agency] || colorOf[pp.name] || '#ffffff';
+      const label = (pp.agency||'') + (pp.hour!=null ? (pp.hour===0 ? ' 起報點' : ' +'+pp.hour+'h') : '') + (pp.desc ? '\n'+pp.desc : '');
+      L.circleMarker(pp.ll, { radius:3.6, color:'#081420', weight:1, fillColor:color, fillOpacity:1 })
+        .bindTooltip(label.replace(/\n/g,'<br>'), {sticky:true}).addTo(multiRouteLayer);
+    });
+    if (lines.length) legendGroups.push({ title: folderName, rows: lines.filter(l=>l.latlngs.length>1).map(l=>({name:l.name,color:l.color})) });
+    kmlKids(node,'Folder').forEach(f=>walk(f, kmlText(f,'name') || folderName));
+  }
+  const root = doc.documentElement;
+  const docEl = kmlKids(root,'Document')[0] || root;
+  walk(docEl, kmlText(docEl,'name'));
+  if (!nLines) throw new Error('KML 內沒有找到路線');
+  const lg = document.getElementById('multi-route-legend');
+  lg.innerHTML = legendGroups.map(g=>(g.title && !(g.rows.length===1 && g.rows[0].name===g.title)?'<div class="mr-grp">'+g.title.replace(/</g,'&lt;')+'</div>':'')+
+    g.rows.map(r=>'<div class="mr-row"><span class="mr-sw" style="background:'+r.color+'"></span>'+r.name.replace(/</g,'&lt;')+'</div>').join('')).join('');
+}
+async function loadMultiRoute(){
+  if (multiRouteLoaded || multiRouteLoading) return;
+  multiRouteLoading = true;
+  const lg = document.getElementById('multi-route-legend');
+  lg.style.display = 'block'; lg.textContent = '載入各國路徑中…';
+  try{
+    const fails = [];
+    let txt = null;
+    if (MULTI_ROUTE_DATA_URL){
+      try{
+        const r = await fetch(MULTI_ROUTE_DATA_URL + (MULTI_ROUTE_DATA_URL.includes('?')?'&':'?') + 't=' + Math.floor(Date.now()/60000), { cache:'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const t = await r.text();
+        if (!/<Placemark/i.test(t)) throw new Error('內容不是 KML');
+        txt = t;
+      }catch(e){ fails.push('自架資料：' + e.message); }
+    }
+    if (!txt) txt = await fetchKmlText(MULTI_ROUTE_URL, fails);
+    multiRouteLayer.clearLayers();
+    if (txt){ renderMultiRoute(txt); multiRouteLoaded = true; }
+    else {
+      console.warn('多國路徑即時連線失敗：', fails);
+      renderMultiRoute(MULTI_ROUTE_SNAPSHOT);
+      lg.insertAdjacentHTML('afterbegin', '<div style="color:#ffb02e;margin-bottom:3px;">即時連線失敗，目前顯示 10/22 20 時的快照，不是最新預報（再開關一次圖層可重試）</div>');
+      lg.title = fails.join('\n');
+    }
+  }catch(e){ console.warn(e); lg.textContent = '無法載入：' + e.message; }
+  multiRouteLoading = false;
+}
+
+[["lyr-track","track"],["lyr-storm","storm"],["lyr-cone","cone"],["lyr-forecast-mode","forecastMode"],["lyr-multi-route","multiRoute"],["lyr-grid","grid"],["lyr-country-border","countryBorder"],["lyr-tw-county","twCounty"],["lyr-sea-warn","seaWarn"],["lyr-county-hit","countyHit"],["lyr-cities","cities"],["lyr-jma-sat","jmaSat"],["lyr-jma-truecolor","jmaTrueColor"],["lyr-jma-infrared","jmaInfrared"]].forEach(([id,key])=>{
+  document.getElementById(id).addEventListener('change', function(){
+    layers[key] = this.checked;
+    this.closest('.leg-item').classList.toggle('active', this.checked);
+    if (key==='grid'){ if(!layers.grid){map.removeLayer(gridLayer);} else {map.addLayer(gridLayer);} }
+    else if (key==='cities'){ updateCityVisibility(); }
+    else if (key==='countryBorder'){ if(!layers.countryBorder){map.removeLayer(countryBorderLayer);} else {map.addLayer(countryBorderLayer);} }
+    else if (key==='multiRoute'){
+      const lg = document.getElementById('multi-route-legend');
+      if (!layers.multiRoute){ map.removeLayer(multiRouteLayer); lg.style.display='none'; }
+      else { map.addLayer(multiRouteLayer); lg.style.display='block'; loadMultiRoute(); }
+    }
+    else if (key==='seaWarn'){ if(!layers.seaWarn){map.removeLayer(seaWarnLayer);} else {map.addLayer(seaWarnLayer);} }
+    else if (key==='countyHit'){ if (currentTyphoon && currentTimeMs!==null) renderAtTime(currentTimeMs); else updateCountyHits(null,null,null); }
+    else if (key==='twCounty'){ if(!layers.twCounty){map.removeLayer(twCountyLayer);} else {map.addLayer(twCountyLayer);} }
+    else if (key==='jmaSat'){
+      if (!layers.jmaSat){ if (jmaSatTileLayer) map.removeLayer(jmaSatTileLayer); }
+      else if (jmaSatTileLayer){ jmaSatTileLayer.addTo(map); }
+      else { loadJmaSatellite(); } // 第一次開啟才真的去抓資料，避免每次打開頁面都預先載入
+    }
+    else if (key==='jmaTrueColor'){
+      if (!layers.jmaTrueColor){ if (jmaTrueColorTileLayer) map.removeLayer(jmaTrueColorTileLayer); }
+      else if (jmaTrueColorTileLayer){ jmaTrueColorTileLayer.addTo(map); }
+      else { loadJmaTrueColor(); }
+    }
+    else if (key==='jmaInfrared'){
+      if (!layers.jmaInfrared){ if (jmaInfraredTileLayer) map.removeLayer(jmaInfraredTileLayer); }
+      else if (jmaInfraredTileLayer){ jmaInfraredTileLayer.addTo(map); }
+      else { loadJmaInfrared(); }
+    }
+    else { renderTyphoon(); }
+  });
+});
+
+document.getElementById('zoom-in').addEventListener('click', ()=>map.zoomIn());
+document.getElementById('zoom-out').addEventListener('click', ()=>map.zoomOut());
+document.getElementById('zoom-reset').addEventListener('click', ()=>map.setView(INITIAL_CENTER, INITIAL_ZOOM));
+
+// ---------------------------------------------------------------------
+// 左右資訊面板收合：收合時分別只留「颱風名稱」和「資料時間」，其餘隱藏
+// ---------------------------------------------------------------------
+function setupCollapse(panelId, bodyId, btnId){
+  const panel = document.getElementById(panelId);
+  const body = document.getElementById(bodyId);
+  const btn = document.getElementById(btnId);
+  let collapsed = false;
+  btn.addEventListener('click', ()=>{
+    collapsed = !collapsed;
+    panel.classList.toggle('collapsed', collapsed);
+    body.style.display = collapsed ? 'none' : '';
+    btn.textContent = collapsed ? '▸' : '▾';
+  });
+}
+// ---------------------------------------------------------------------
+// 畫筆：開啟時地圖不能拖動（仍可滾輪／雙指縮放），筆跡存成經緯度，
+// 所以縮放後會跟著地圖一起縮放、不會漂移。
+// ---------------------------------------------------------------------
+(function(){
+  map.createPane('penPane'); map.getPane('penPane').style.zIndex = 650;
+  const mapEl = map.getContainer(), btn = document.getElementById('pen-btn'), bar = document.getElementById('pen-bar');
+  let on = false, color = '#ff4d4d', cur = null, pid = null;
+  const strokes = [], touches = new Set();
+  function setPen(v){
+    on = v; btn.classList.toggle('on', v); btn.setAttribute('aria-pressed', v);
+    bar.classList.toggle('open', v); mapEl.classList.toggle('pen-mode', v);
+    if (v) map.dragging.disable(); else { map.dragging.enable(); cancel(); }
+  }
+  function cancel(){ if (cur){ map.removeLayer(cur); cur = null; pid = null; } }
+  btn.addEventListener('click', e=>{ e.stopPropagation(); setPen(!on); });
+  bar.querySelectorAll('.pc').forEach(b=>b.addEventListener('click', ()=>{
+    color = b.dataset.c; bar.querySelectorAll('.pc').forEach(x=>x.classList.toggle('sel', x===b));
+  }));
+  document.getElementById('pen-undo').addEventListener('click', ()=>{ const l = strokes.pop(); if (l) map.removeLayer(l); });
+  document.getElementById('pen-clear').addEventListener('click', ()=>{ strokes.splice(0).forEach(l=>map.removeLayer(l)); });
+  const pt = e => map.mouseEventToLatLng(e);
+  mapEl.addEventListener('pointerdown', e=>{
+    if (!on || e.target.closest('.panel,#top-btns,#pen-bar,.leaflet-control')) return;
+    if (e.pointerType==='touch'){ touches.add(e.pointerId); if (touches.size>1){ cancel(); return; } }
+    if (e.pointerType==='mouse' && e.button!==0) return;
+    pid = e.pointerId;
+    cur = L.polyline([pt(e)], {color, weight:3.5, opacity:0.95, lineCap:'round', lineJoin:'round', interactive:false, pane:'penPane', smoothFactor:1}).addTo(map);
+    e.preventDefault();
+  }, true);
+  mapEl.addEventListener('pointermove', e=>{
+    if (!on || !cur || e.pointerId!==pid) return;
+    cur.addLatLng(pt(e)); e.preventDefault();
+  }, true);
+  const end = e=>{
+    touches.delete(e.pointerId);
+    if (cur && e.pointerId===pid){ strokes.push(cur); cur = null; pid = null; }
+  };
+  mapEl.addEventListener('pointerup', end, true);
+  mapEl.addEventListener('pointercancel', e=>{ touches.delete(e.pointerId); if (e.pointerId===pid) cancel(); }, true);
+})();
+
+// ---------------------------------------------------------------------
+// 底部播放框像 YouTube：點一下地圖就收起，滑動（滑鼠移動／手指拖曳）或再點一下就回來
+// ---------------------------------------------------------------------
+(function(){
+  const tl = document.getElementById('timeline'), mapEl = map.getContainer();
+  let hiddenAt = 0, lx = null, ly = null;
+  const show = ()=>tl.classList.remove('tl-hidden');
+  map.on('click', ()=>{
+    if (mapEl.classList.contains('pen-mode')) return; // 畫筆模式下點擊是在畫畫，不收起
+    if (tl.classList.contains('tl-hidden')) show();
+    else { tl.classList.add('tl-hidden'); hiddenAt = Date.now(); }
+  });
+  // 滑鼠移動：剛收起 500ms 內與微小抖動不算，避免一點下去又馬上彈回來
+  mapEl.addEventListener('pointermove', e=>{
+    if (e.pointerType!=='mouse' || !tl.classList.contains('tl-hidden')) return;
+    if (lx===null){ lx=e.clientX; ly=e.clientY; return; }
+    if (Date.now()-hiddenAt < 500){ lx=e.clientX; ly=e.clientY; return; }
+    if (Math.hypot(e.clientX-lx, e.clientY-ly) > 6){ show(); }
+  });
+  mapEl.addEventListener('pointerdown', e=>{ lx=e.clientX; ly=e.clientY; });
+  // 手指拖曳或雙指縮放
+  mapEl.addEventListener('touchmove', ()=>{
+    if (!mapEl.classList.contains('pen-mode') && Date.now()-hiddenAt > 300) show();
+  }, {passive:true});
+  map.on('movestart zoomstart', ()=>{ if (Date.now()-hiddenAt > 300 && !mapEl.classList.contains('pen-mode')) show(); });
+})();
+
+setupCollapse('title-bar', 'title-collapsible', 'title-toggle');
+setupCollapse('readout', 'readout-collapsible', 'readout-toggle');
+
+// 圖層選單：點方形按鈕才展開，再點、按 Esc 或點地圖其他地方收起
+(function(){
+  const btn=document.getElementById('layers-btn'), panel=document.getElementById('legend');
+  const setOpen=o=>{ panel.classList.toggle('open',o); btn.setAttribute('aria-expanded',o); };
+  btn.addEventListener('click',e=>{ e.stopPropagation(); setOpen(!panel.classList.contains('open')); });
+  document.addEventListener('click',e=>{ if(!panel.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') setOpen(false); });
+})();
+
+map.on('mousemove', (e)=>{
+  d3set("#mouse-coord", `滑鼠位置 · ${e.latlng.lat.toFixed(2)}°N, ${e.latlng.lng.toFixed(2)}°E`);
+});
+
+function fitToTyphoon(ty){
+  try{
+    const bounds = L.latLngBounds(ty.track.map(p=>[p.lat,p.lon]));
+    map.fitBounds(bounds.pad(0.45));
+  }catch(e){ /* ignore */ }
+}
+
+// ---------------------------------------------------------------------
+// CWA 即時資料讀取與解析
+// ---------------------------------------------------------------------
+function setStatus(kind, text){
+  const pill = document.getElementById('data-status');
+  pill.className = 'status-pill status-' + kind;
+  pill.innerHTML = '<span class="status-dot"></span>' + text;
+}
+function setStatusDetail(text){ document.getElementById('status-detail').textContent = text || ''; }
+function getLangText(node, prefLang){
+  if (!node) return null;
+  const list = Array.isArray(node) ? node : [node];
+  const norm = x => x ? { lang: x.lang || x['@lang'], text: (x.value!=null?x.value:(x['#text']!=null?x['#text']:null)) } : null;
+  const items = list.map(norm).filter(Boolean);
+  const pick = items.find(x=>x.lang===prefLang) || items[0];
+  return pick ? pick.text : null;
+}
+function formatDate(d){
+  if (!(d instanceof Date)) d = new Date(d);
+  if (isNaN(d.getTime())) return '';
+  const mm=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  const hh=String(d.getHours()).padStart(2,'0'), mi=String(d.getMinutes()).padStart(2,'0');
+  return `${mm}/${dd} ${hh}:${mi}`;
+}
+function computeForecastTime(initialTime, forecastHour){
+  const base = new Date(initialTime);
+  if (isNaN(base.getTime())) return null;
+  const h = parseFloat(forecastHour) || 0;
+  return new Date(base.getTime() + h*3600*1000);
+}
+function categoryFromWindMs(ms, stateText){
+  if (stateText && /溫帶/.test(stateText)) return '溫帶氣旋';
+  if (ms==null || isNaN(ms)) return '熱帶氣旋';
+  if (ms < 17.2) return '熱帶性低氣壓';
+  if (ms < 32.7) return '輕度颱風';
+  if (ms < 51.0) return '中度颱風';
+  return '強烈颱風';
+}
+
+function parseCwaTyphoon(raw){
+  try{
+    const nameEn = raw.TyphoonName || '';
+    const nameCn = raw.CwaTyphoonName || '';
+    const displayName = [nameCn, nameEn].filter(Boolean).join(' ') ||
+      (raw.CwaTdNo ? ('熱帶性低氣壓 '+raw.CwaTdNo) : '未命名熱帶氣旋');
+    const num = raw.CwaTyNo ? ('第'+raw.CwaTyNo+'號') : (raw.CwaTdNo ? ('編號 '+raw.CwaTdNo) : '');
+
+    const track = [];
+    const fixesRaw = raw.AnalysisData && raw.AnalysisData.Fix;
+    const fixArr = fixesRaw ? (Array.isArray(fixesRaw) ? fixesRaw : [fixesRaw]) : [];
+    fixArr.forEach((f,i)=>{
+      const lon = parseFloat(f.CoordinateLongitude), lat = parseFloat(f.CoordinateLatitude);
+      if (isNaN(lon) || isNaN(lat)) return;
+      const windMs = f.MaxWindSpeed!=null ? parseFloat(f.MaxWindSpeed) : null;
+      const gustMs = f.MaxGustSpeed!=null ? parseFloat(f.MaxGustSpeed) : null;
+      const stormR = f.Circle15ms && f.Circle15ms.Radius!=null ? parseFloat(f.Circle15ms.Radius) : null;
+      const stormR25 = f.Circle25ms && f.Circle25ms.Radius!=null ? parseFloat(f.Circle25ms.Radius) : null;
+      const moveText = getLangText(f.MovingPrediction, 'zh-hant');
+      const dt = new Date(f.DateTime);
+      track.push({
+        t: formatDate(f.DateTime),
+        ts: isNaN(dt.getTime()) ? null : dt.getTime(),
+        lon, lat,
+        wind: (windMs!=null && !isNaN(windMs)) ? Math.round(windMs) : null,
+        gust: (gustMs!=null && !isNaN(gustMs)) ? Math.round(gustMs) : null,
+        windUnit: ' m/s',
+        cat: categoryFromWindMs(windMs),
+        move: moveText || ((f.MovingDirection && f.MovingSpeed) ? `向${f.MovingDirection} ${f.MovingSpeed}km/h` : undefined),
+        isNow: i === fixArr.length-1,
+        stormRadiusKm: (stormR!=null && !isNaN(stormR)) ? stormR : null,
+        stormRadius25Km: (stormR25!=null && !isNaN(stormR25)) ? stormR25 : null
+      });
+    });
+
+    const forecastRaw = raw.ForecastData && raw.ForecastData.Fix;
+    const forecastArr = forecastRaw ? (Array.isArray(forecastRaw) ? forecastRaw : [forecastRaw]) : [];
+    forecastArr.forEach(f=>{
+      const lon = parseFloat(f.CoordinateLongitude), lat = parseFloat(f.CoordinateLatitude);
+      if (isNaN(lon) || isNaN(lat)) return;
+      const windMs = f.MaxWindSpeed!=null ? parseFloat(f.MaxWindSpeed) : null;
+      const stormR = f.Circle15ms && f.Circle15ms.Radius!=null ? parseFloat(f.Circle15ms.Radius) : null;
+      const stormR25 = f.Circle25ms && f.Circle25ms.Radius!=null ? parseFloat(f.Circle25ms.Radius) : null;
+      const coneR = f.Radius70PercentProbability!=null ? parseFloat(f.Radius70PercentProbability) : null;
+      const stateText = getLangText(f.StateTransfer, 'zh-hant');
+      const validTime = computeForecastTime(f.InitialTime, f.ForecastHour);
+      track.push({
+        t: validTime ? formatDate(validTime) : '',
+        ts: validTime ? validTime.getTime() : null,
+        lon, lat,
+        wind: (windMs!=null && !isNaN(windMs)) ? Math.round(windMs) : null,
+        windUnit: ' m/s',
+        cat: categoryFromWindMs(windMs, stateText),
+        move: stateText || undefined,
+        stormRadiusKm: (stormR!=null && !isNaN(stormR)) ? stormR : null,
+        stormRadius25Km: (stormR25!=null && !isNaN(stormR25)) ? stormR25 : null,
+        coneRadiusKm: (coneR!=null && !isNaN(coneR)) ? coneR : null
+      });
+    });
+
+    if (track.length < 2) return null;
+    return { id: 'live-'+(raw.CwaTyNo||raw.CwaTdNo||displayName), name: displayName, num, track, isLive:true };
+  }catch(e){
+    console.warn('解析單一颱風資料失敗：', e, raw);
+    return null;
+  }
+}
+
+async function tryFetchJson(url){
+  const res = await fetch(url, { cache:'no-store' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+// 直接連線常常會被瀏覽器的 CORS 政策擋下（尤其是從本機檔案 file:// 開啟時），
+// 這裡依序多試幾個公開的 CORS 代理，其中一個打得通就用。
+const CORS_PROXIES = [
+  url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+  url => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
+  url => 'https://corsproxy.io/?url=' + encodeURIComponent(url),
+  url => 'https://api.cors.lol/?url=' + encodeURIComponent(url),
+  url => 'https://cors.isomorphic-git.org/' + url,
+];
+async function fetchJsonWithFallback(url, label){
+  const attempts = [{ l:'直接連線', u:url }, ...CORS_PROXIES.map((fn,i)=>({ l:'代理'+(i+1), u:fn(url) }))];
+  for (const a of attempts){
+    try{ return await tryFetchJson(a.u); }
+    catch(e){ console.warn(label+' 讀取失敗（'+a.l+'）：', e); }
+  }
+  return null;
+}
+// 找到即時資料的正確位置：實際 API 回傳是 records.TropicalCyclones.TropicalCyclone，
+// 但也順手兼容另一種常見的 cwaopendata.Dataset.TropicalCyclones 匯出格式，比較保險。
+function extractTropicalCyclones(data){
+  const a = data && data.records && data.records.TropicalCyclones && data.records.TropicalCyclones.TropicalCyclone;
+  const b = data && data.cwaopendata && data.cwaopendata.Dataset && data.cwaopendata.Dataset.TropicalCyclones && data.cwaopendata.Dataset.TropicalCyclones.TropicalCyclone;
+  const node = a || b;
+  return node ? (Array.isArray(node) ? node : [node]) : [];
+}
+
+// ---------------------------------------------------------------------
+// JMA 衛星雲圖：色調強化圖（雲頂強調画像 SND/ETC）＋ 真實色雲圖（トゥルー
+// カラー再現画像 REP/ETC）。色調強化圖是依雲頂溫度上色，容易看出雲的
+// 強弱分布，但陸地本身是灰階背景，雲跟陸地的對比不夠明顯；真實色版本
+// 是接近人眼看到的自然色澤，陸地是綠棕色、雲是白色，跟陸地的對比反而
+// 更直覺。兩個圖層可以各自獨立開關，也能疊在一起比較。
+// 用的都是「全圓盤 full disk」版本，涵蓋整個衛星視野（東亞、大洋洲、
+// 西太平洋全部在內），才蓋得住我們地圖北緯0-60、東經100-180的範圍。
+// 這是每 10 分鐘更新一次的衛星雲圖圖磚，需要先抓「有效時刻清單」才能
+// 拼出正確的圖磚網址，兩個圖層共用同一次時刻查詢結果，不用各打一次。
+// ---------------------------------------------------------------------
+let jmaLatestTimeCache = null;
+async function getJmaLatestTime(){
+  if (jmaLatestTimeCache) return jmaLatestTimeCache;
+  const times = await fetchJsonWithFallback('https://www.jma.go.jp/bosai/himawari/data/satimg/targetTimes_fd.json', 'JMA 衛星影像時刻清單');
+  if (times && times.length) jmaLatestTimeCache = times[times.length-1];
+  return jmaLatestTimeCache;
+}
+function buildJmaTileUrl(latest, bandProd){
+  return `https://www.jma.go.jp/bosai/himawari/data/satimg/${latest.basetime}/fd/${latest.validtime}/${bandProd}/{z}/{x}/{y}.jpg`;
+}
+function hideBrokenTile(e){ if (e.tile) e.tile.style.display = 'none'; } // 範圍外的圖磚直接隱藏，不顯示破圖示
+
+let jmaSatTileLayer = null;
+async function loadJmaSatellite(){
+  const latest = await getJmaLatestTime();
+  if (!latest){ console.warn('JMA 衛星影像時刻清單取得失敗，色調強化圖暫時無法使用。'); return; }
+  if (jmaSatTileLayer) map.removeLayer(jmaSatTileLayer);
+  jmaSatTileLayer = L.tileLayer(buildJmaTileUrl(latest, 'SND/ETC'), {
+    opacity: 1, minZoom: 3, maxZoom: 19, maxNativeZoom: 5, minNativeZoom: 3, pane: 'satPane',
+    attribution: '衛星影像 &copy; <a href="https://www.jma.go.jp/">Japan Meteorological Agency</a>'
+  });
+  jmaSatTileLayer.on('tileerror', hideBrokenTile);
+  if (layers.jmaSat) jmaSatTileLayer.addTo(map);
+}
+
+let jmaTrueColorTileLayer = null;
+async function loadJmaTrueColor(){
+  const latest = await getJmaLatestTime();
+  if (!latest){ console.warn('JMA 衛星影像時刻清單取得失敗，真實色雲圖暫時無法使用。'); return; }
+  if (jmaTrueColorTileLayer) map.removeLayer(jmaTrueColorTileLayer);
+  jmaTrueColorTileLayer = L.tileLayer(buildJmaTileUrl(latest, 'REP/ETC'), {
+    opacity: 1, minZoom: 3, maxZoom: 19, maxNativeZoom: 5, minNativeZoom: 3, pane: 'satPane',
+    attribution: '衛星影像 &copy; <a href="https://www.jma.go.jp/">Japan Meteorological Agency</a>'
+  });
+  jmaTrueColorTileLayer.on('tileerror', hideBrokenTile);
+  if (layers.jmaTrueColor) jmaTrueColorTileLayer.addTo(map);
+}
+
+// 紅外線衛星雲圖：用 B13（10.4μm 熱紅外窗區波段）+ TBB（黑體亮度溫度）。
+// 這是氣象上判斷雲頂溫度、追蹤颱風強度最常用的頻道，優點是全天候都有
+// 訊號（不像可見光只有白天有陽光才能拍），適合搭配色調強化圖交叉比對。
+let jmaInfraredTileLayer = null;
+async function loadJmaInfrared(){
+  const latest = await getJmaLatestTime();
+  if (!latest){ console.warn('JMA 衛星影像時刻清單取得失敗，紅外線雲圖暫時無法使用。'); return; }
+  if (jmaInfraredTileLayer) map.removeLayer(jmaInfraredTileLayer);
+  jmaInfraredTileLayer = L.tileLayer(buildJmaTileUrl(latest, 'B13/TBB'), {
+    opacity: 1, minZoom: 3, maxZoom: 19, maxNativeZoom: 5, minNativeZoom: 3, pane: 'satPane',
+    attribution: '衛星影像 &copy; <a href="https://www.jma.go.jp/">Japan Meteorological Agency</a>'
+  });
+  jmaInfraredTileLayer.on('tileerror', hideBrokenTile);
+  if (layers.jmaInfrared) jmaInfraredTileLayer.addTo(map);
+}
+
+async function fetchLiveTyphoons(){
+  setStatus('loading', '連線中央氣象署…');
+  setStatusDetail('');
+  const attempts = [
+    { label:'直接連線', url: CWA_ENDPOINT },
+    ...CORS_PROXIES.map((fn,i)=>({ label:'代理 '+(i+1), url: fn(CWA_ENDPOINT) }))
+  ];
+  let data = null, usedLabel = null;
+  const errors = [];
+  for (const a of attempts){
+    try{
+      data = await tryFetchJson(a.url);
+      usedLabel = a.label;
+      break;
+    }catch(err){
+      errors.push(a.label + '：' + (err && err.message ? err.message : err));
+      console.warn(a.label + ' 讀取失敗：', err);
+    }
+  }
+  if (data === null){
+    setStatus('offline', '無法取得即時資料');
+    setStatusDetail('直接連線與所有代理都失敗了，可能是 CORS 限制、金鑰失效或網路問題。詳細：' + errors.join(' ｜ '));
+    return null;
+  }
+  try{
+    const arr = extractTropicalCyclones(data);
+    const parsed = arr.map(parseCwaTyphoon).filter(Boolean);
+    const usedProxy = usedLabel !== '直接連線';
+    if (parsed.length === 0){
+      setStatus('offline', '目前無活動颱風');
+      setStatusDetail('CWA 回應成功（' + usedLabel + '），但西北太平洋目前沒有活動中的熱帶氣旋。');
+      return [];
+    }
+    setStatus('live', `即時資料 · ${parsed.length} 個活動颱風` + (usedProxy?'（經代理）':''));
+    setStatusDetail('資料來源：中央氣象署開放資料平台 W-C0034-005（' + usedLabel + (usedProxy?'，資料會經過第三方轉送）':'）'));
+    return parsed;
+  }catch(err3){
+    console.warn('資料解析失敗：', err3, data);
+    setStatus('offline', '資料解析失敗');
+    setStatusDetail('已成功連線（' + usedLabel + '）但解析格式時發生錯誤：' + (err3 && err3.message ? err3.message : err3));
+    return null;
+  }
+}
+
+async function init(){
+  const live = await fetchLiveTyphoons();
+  TYPHOONS = live || [];
+  populateSelect();
+  if (TYPHOONS.length === 0){
+    showEmptyState(live === null);
+    return;
+  }
+  hideEmptyState();
+  currentTyphoon = TYPHOONS[0];
+  currentTimeMs = null;
+  renderTyphoon();
+  fitToTyphoon(currentTyphoon);
+}
+function showEmptyState(fetchFailed){
+  currentTyphoon = null;
+  trackLayer.clearLayers(); coneLayer.clearLayers(); forecastLayer.clearLayers();
+  updateStormCircle(stormCircle7, [0,0], null);
+  updateStormCircle(stormCircle10, [0,0], null);
+  updateCountyHits(null, null, null);
+  updateStormCircle(nowStormCircle7, [0,0], null);
+  updateStormCircle(nowStormCircle10, [0,0], null);
+  const msg = fetchFailed ? '無法取得即時資料' : '目前無活動颱風';
+  d3set("#typhoon-name", msg);
+  d3set("#empty-state-text", msg);
+  document.getElementById('empty-state').style.display = 'block';
+  document.getElementById('r-time').textContent = '—';
+}
+function hideEmptyState(){
+  document.getElementById('empty-state').style.display = 'none';
+}
+document.getElementById('refresh-btn').addEventListener('click', init);
+
+init();
+</script>
+</body>
+</html>
