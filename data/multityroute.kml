@@ -2,8 +2,8 @@
 <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
 <Document>
 <Folder><name>HKO</name><Placemark>
-<name>HKO發佈時間:10/23 14</name>
-<description>HKO發佈時間:10/23 14</description>
+<name>HKO發佈時間:10/23 20</name>
+<description>HKO發佈時間:10/23 20</description>
 <StyleMap id="HKO_00"> 
 <Pair><key>normal</key><styleUrl>#HKO_nb00</styleUrl></Pair>
 <Pair><key>highlight</key><styleUrl>#HKO_hb00</styleUrl></Pair>
@@ -11,7 +11,7 @@
 <Style id="HKO_hb00"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/r00.png</href></Icon></IconStyle></Style>
 <Style id="HKO_nb00"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/r00.png</href></Icon></IconStyle></Style>
 <styleUrl>#HKO_00</styleUrl>
-<Point><coordinates>123.300003051758,23.7000007629395,0</coordinates></Point>
+<Point><coordinates>122.900001525879,24.7000007629395,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -23,7 +23,7 @@
 <Style id="HKO_hb24"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/r24.png</href></Icon></IconStyle></Style>
 <Style id="HKO_nb24"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/r24.png</href></Icon></IconStyle></Style>
 <styleUrl>#HKO_24</styleUrl>
-<Point><coordinates>122.900001525879,26.2000007629395,0</coordinates></Point>
+<Point><coordinates>123.300003051758,27.1000003814697,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -35,7 +35,7 @@
 <Style id="HKO_hb48"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/r48.png</href></Icon></IconStyle></Style>
 <Style id="HKO_nb48"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/r48.png</href></Icon></IconStyle></Style>
 <styleUrl>#HKO_48</styleUrl>
-<Point><coordinates>125.199996948242,29.8999996185303,0</coordinates></Point>
+<Point><coordinates>126.300003051758,30.7000007629395,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -47,7 +47,7 @@
 <Style id="HKO_hb72"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/r72.png</href></Icon></IconStyle></Style>
 <Style id="HKO_nb72"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/r72.png</href></Icon></IconStyle></Style>
 <styleUrl>#HKO_72</styleUrl>
-<Point><coordinates>131,32.5999984741211,0</coordinates></Point>
+<Point><coordinates>133.699996948242,32.9000015258789,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -59,7 +59,7 @@
 <Style id="HKO_hb96"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/r96.png</href></Icon></IconStyle></Style>
 <Style id="HKO_nb96"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/r96.png</href></Icon></IconStyle></Style>
 <styleUrl>#HKO_96</styleUrl>
-<Point><coordinates>146.300003051758,36.7000007629395,0</coordinates></Point>
+<Point><coordinates>151,38.4000015258789,0</coordinates></Point>
 </Placemark>
 <Placemark><name>HKO</name>
 <Style id="HKOroute"><ListStyle></ListStyle>
@@ -69,11 +69,11 @@
 <styleUrl>#HKOroute</styleUrl>
 <LineString>
 <tessellate>1</tessellate>
-<coordinates>123.3,23.7,0 122.9,26.2,0 125.2,29.9,0 131,32.6,0 146.3,36.7,0 </coordinates>
+<coordinates>122.9,24.7,0 123.3,27.1,0 126.3,30.7,0 133.7,32.9,0 151,38.4,0 </coordinates>
 </LineString></Placemark></Folder>
 <Folder><name>JTWC</name><Placemark>
-<name>JTWC發佈時間:10/23 14</name>
-<description>JTWC發佈時間:10/23 14</description>
+<name>JTWC發佈時間:10/23 20</name>
+<description>JTWC發佈時間:10/23 20</description>
 <StyleMap id="JTWC_00"> 
 <Pair><key>normal</key><styleUrl>#JTWC_nb00</styleUrl></Pair>
 <Pair><key>highlight</key><styleUrl>#JTWC_hb00</styleUrl></Pair>
@@ -81,7 +81,7 @@
 <Style id="JTWC_hb00"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/O00.png</href></Icon></IconStyle></Style>
 <Style id="JTWC_nb00"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/O00.png</href></Icon></IconStyle></Style>
 <styleUrl>#JTWC_00</styleUrl>
-<Point><coordinates>123.400001525879,23.7000007629395,0</coordinates></Point>
+<Point><coordinates>122.699996948242,25,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -93,7 +93,7 @@
 <Style id="JTWC_hb24"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/O24.png</href></Icon></IconStyle></Style>
 <Style id="JTWC_nb24"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/O24.png</href></Icon></IconStyle></Style>
 <styleUrl>#JTWC_24</styleUrl>
-<Point><coordinates>122.900001525879,26.1000003814697,0</coordinates></Point>
+<Point><coordinates>122.599998474121,27.6000003814697,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -105,7 +105,7 @@
 <Style id="JTWC_hb48"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/O48.png</href></Icon></IconStyle></Style>
 <Style id="JTWC_nb48"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/O48.png</href></Icon></IconStyle></Style>
 <styleUrl>#JTWC_48</styleUrl>
-<Point><coordinates>124.5,29.6000003814697,0</coordinates></Point>
+<Point><coordinates>125.699996948242,31.2999992370605,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -117,7 +117,7 @@
 <Style id="JTWC_hb72"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/O72.png</href></Icon></IconStyle></Style>
 <Style id="JTWC_nb72"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/O72.png</href></Icon></IconStyle></Style>
 <styleUrl>#JTWC_72</styleUrl>
-<Point><coordinates>130.100006103516,32.0999984741211,0</coordinates></Point>
+<Point><coordinates>131.800003051758,32.9000015258789,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -129,7 +129,7 @@
 <Style id="JTWC_hb96"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/O96.png</href></Icon></IconStyle></Style>
 <Style id="JTWC_nb96"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/O96.png</href></Icon></IconStyle></Style>
 <styleUrl>#JTWC_96</styleUrl>
-<Point><coordinates>138.899993896484,33.7999992370605,0</coordinates></Point>
+<Point><coordinates>143.199996948242,35.0999984741211,0</coordinates></Point>
 </Placemark>
 <Placemark><name>JTWC</name>
 <Style id="JTWCroute"><ListStyle></ListStyle>
@@ -139,11 +139,11 @@
 <styleUrl>#JTWCroute</styleUrl>
 <LineString>
 <tessellate>1</tessellate>
-<coordinates>123.4,23.7,0 122.9,26.1,0 124.5,29.6,0 130.1,32.1,0 138.9,33.8,0 </coordinates>
+<coordinates>122.7,25,0 122.6,27.6,0 125.7,31.3,0 131.8,32.9,0 143.2,35.1,0 </coordinates>
 </LineString></Placemark></Folder>
 <Folder><name>JMA</name><Placemark>
-<name>JMA發佈時間:10/23 14</name>
-<description>JMA發佈時間:10/23 14</description>
+<name>JMA發佈時間:10/23 20</name>
+<description>JMA發佈時間:10/23 20</description>
 <StyleMap id="JMA_00"> 
 <Pair><key>normal</key><styleUrl>#JMA_nb00</styleUrl></Pair>
 <Pair><key>highlight</key><styleUrl>#JMA_hb00</styleUrl></Pair>
@@ -151,7 +151,7 @@
 <Style id="JMA_hb00"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/S00.png</href></Icon></IconStyle></Style>
 <Style id="JMA_nb00"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/S00.png</href></Icon></IconStyle></Style>
 <styleUrl>#JMA_00</styleUrl>
-<Point><coordinates>123.300003051758,23.7999992370605,0</coordinates></Point>
+<Point><coordinates>122.800003051758,24.8999996185303,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -163,7 +163,7 @@
 <Style id="JMA_hb24"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/S24.png</href></Icon></IconStyle></Style>
 <Style id="JMA_nb24"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/S24.png</href></Icon></IconStyle></Style>
 <styleUrl>#JMA_24</styleUrl>
-<Point><coordinates>122.800003051758,26.2999992370605,0</coordinates></Point>
+<Point><coordinates>123.199996948242,27.1000003814697,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -175,7 +175,7 @@
 <Style id="JMA_hb48"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/S48.png</href></Icon></IconStyle></Style>
 <Style id="JMA_nb48"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/S48.png</href></Icon></IconStyle></Style>
 <styleUrl>#JMA_48</styleUrl>
-<Point><coordinates>124.400001525879,29.6000003814697,0</coordinates></Point>
+<Point><coordinates>125.5,30.3999996185303,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -187,19 +187,7 @@
 <Style id="JMA_hb72"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/S72.png</href></Icon></IconStyle></Style>
 <Style id="JMA_nb72"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/S72.png</href></Icon></IconStyle></Style>
 <styleUrl>#JMA_72</styleUrl>
-<Point><coordinates>128.699996948242,31.7999992370605,0</coordinates></Point>
-</Placemark>
-<Placemark>
-<name></name>
-<description></description>
-<StyleMap id="JMA_96"> 
-<Pair><key>normal</key><styleUrl>#JMA_nb96</styleUrl></Pair>
-<Pair><key>highlight</key><styleUrl>#JMA_hb96</styleUrl></Pair>
-</StyleMap>
-<Style id="JMA_hb96"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/S96.png</href></Icon></IconStyle></Style>
-<Style id="JMA_nb96"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/S96.png</href></Icon></IconStyle></Style>
-<styleUrl>#JMA_96</styleUrl>
-<Point><coordinates>140,32.5,0</coordinates></Point>
+<Point><coordinates>133.600006103516,32.5999984741211,0</coordinates></Point>
 </Placemark>
 <Placemark><name>JMA</name>
 <Style id="JMAroute"><ListStyle></ListStyle>
@@ -209,11 +197,11 @@
 <styleUrl>#JMAroute</styleUrl>
 <LineString>
 <tessellate>1</tessellate>
-<coordinates>123.3,23.8,0 122.8,26.3,0 124.4,29.6,0 128.7,31.8,0 140,32.5,0 </coordinates>
+<coordinates>122.8,24.9,0 123.2,27.1,0 125.5,30.4,0 133.6,32.6,0 </coordinates>
 </LineString></Placemark></Folder>
 <Folder><name>NMC</name><Placemark>
-<name>NMC發佈時間:10/23 14</name>
-<description>NMC發佈時間:10/23 14</description>
+<name>NMC發佈時間:10/23 20</name>
+<description>NMC發佈時間:10/23 20</description>
 <StyleMap id="NMC_00"> 
 <Pair><key>normal</key><styleUrl>#NMC_nb00</styleUrl></Pair>
 <Pair><key>highlight</key><styleUrl>#NMC_hb00</styleUrl></Pair>
@@ -221,7 +209,7 @@
 <Style id="NMC_hb00"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/p00.png</href></Icon></IconStyle></Style>
 <Style id="NMC_nb00"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/p00.png</href></Icon></IconStyle></Style>
 <styleUrl>#NMC_00</styleUrl>
-<Point><coordinates>123.300003051758,23.7000007629395,0</coordinates></Point>
+<Point><coordinates>123.099998474121,24.6000003814697,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -233,7 +221,7 @@
 <Style id="NMC_hb24"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/p24.png</href></Icon></IconStyle></Style>
 <Style id="NMC_nb24"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/p24.png</href></Icon></IconStyle></Style>
 <styleUrl>#NMC_24</styleUrl>
-<Point><coordinates>122.400001525879,25.6000003814697,0</coordinates></Point>
+<Point><coordinates>122.800003051758,26.3999996185303,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -245,7 +233,7 @@
 <Style id="NMC_hb48"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/p48.png</href></Icon></IconStyle></Style>
 <Style id="NMC_nb48"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/p48.png</href></Icon></IconStyle></Style>
 <styleUrl>#NMC_48</styleUrl>
-<Point><coordinates>122.599998474121,28.2999992370605,0</coordinates></Point>
+<Point><coordinates>125,29.8999996185303,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -257,7 +245,7 @@
 <Style id="NMC_hb72"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/p72.png</href></Icon></IconStyle></Style>
 <Style id="NMC_nb72"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/p72.png</href></Icon></IconStyle></Style>
 <styleUrl>#NMC_72</styleUrl>
-<Point><coordinates>128.5,31.8999996185303,0</coordinates></Point>
+<Point><coordinates>131.100006103516,32.2999992370605,0</coordinates></Point>
 </Placemark>
 <Placemark><name>NMC</name>
 <Style id="NMCroute"><ListStyle></ListStyle>
@@ -267,11 +255,11 @@
 <styleUrl>#NMCroute</styleUrl>
 <LineString>
 <tessellate>1</tessellate>
-<coordinates>123.3,23.7,0 122.4,25.6,0 122.6,28.3,0 128.5,31.9,0 </coordinates>
+<coordinates>123.1,24.6,0 122.8,26.4,0 125,29.9,0 131.1,32.3,0 </coordinates>
 </LineString></Placemark></Folder>
 <Folder><name>CWA</name><Placemark>
-<name>CWA發佈時間:10/23 14</name>
-<description>CWA發佈時間:10/23 14</description>
+<name>CWA發佈時間:10/23 20</name>
+<description>CWA發佈時間:10/23 20</description>
 <StyleMap id="CWA_00"> 
 <Pair><key>normal</key><styleUrl>#CWA_nb00</styleUrl></Pair>
 <Pair><key>highlight</key><styleUrl>#CWA_hb00</styleUrl></Pair>
@@ -279,7 +267,7 @@
 <Style id="CWA_hb00"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/B00.png</href></Icon></IconStyle></Style>
 <Style id="CWA_nb00"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/B00.png</href></Icon></IconStyle></Style>
 <styleUrl>#CWA_00</styleUrl>
-<Point><coordinates>123.300003051758,23.7000007629395,0</coordinates></Point>
+<Point><coordinates>122.699996948242,24.8999996185303,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -291,7 +279,7 @@
 <Style id="CWA_hb24"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/B24.png</href></Icon></IconStyle></Style>
 <Style id="CWA_nb24"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/B24.png</href></Icon></IconStyle></Style>
 <styleUrl>#CWA_24</styleUrl>
-<Point><coordinates>122.900001525879,26.2000007629395,0</coordinates></Point>
+<Point><coordinates>123.099998474121,27.5,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -303,7 +291,7 @@
 <Style id="CWA_hb48"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/B48.png</href></Icon></IconStyle></Style>
 <Style id="CWA_nb48"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/B48.png</href></Icon></IconStyle></Style>
 <styleUrl>#CWA_48</styleUrl>
-<Point><coordinates>124.900001525879,29.7000007629395,0</coordinates></Point>
+<Point><coordinates>125.900001525879,30.5,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -315,7 +303,7 @@
 <Style id="CWA_hb72"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/B72.png</href></Icon></IconStyle></Style>
 <Style id="CWA_nb72"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/B72.png</href></Icon></IconStyle></Style>
 <styleUrl>#CWA_72</styleUrl>
-<Point><coordinates>130.600006103516,32.2000007629395,0</coordinates></Point>
+<Point><coordinates>131.5,32.4000015258789,0</coordinates></Point>
 </Placemark>
 <Placemark><name>CWA</name>
 <Style id="CWAroute"><ListStyle></ListStyle>
@@ -325,11 +313,11 @@
 <styleUrl>#CWAroute</styleUrl>
 <LineString>
 <tessellate>1</tessellate>
-<coordinates>123.3,23.7,0 122.9,26.2,0 124.9,29.7,0 130.6,32.2,0 </coordinates>
+<coordinates>122.7,24.9,0 123.1,27.5,0 125.9,30.5,0 131.5,32.4,0 </coordinates>
 </LineString></Placemark></Folder>
 <Folder><name>KMA</name><Placemark>
-<name>KMA發佈時間:10/23 14</name>
-<description>KMA發佈時間:10/23 14</description>
+<name>KMA發佈時間:10/23 20</name>
+<description>KMA發佈時間:10/23 20</description>
 <StyleMap id="KMA_00"> 
 <Pair><key>normal</key><styleUrl>#KMA_nb00</styleUrl></Pair>
 <Pair><key>highlight</key><styleUrl>#KMA_hb00</styleUrl></Pair>
@@ -337,7 +325,7 @@
 <Style id="KMA_hb00"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/G00.png</href></Icon></IconStyle></Style>
 <Style id="KMA_nb00"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/G00.png</href></Icon></IconStyle></Style>
 <styleUrl>#KMA_00</styleUrl>
-<Point><coordinates>123.400001525879,23.7000007629395,0</coordinates></Point>
+<Point><coordinates>122.699996948242,24.8999996185303,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -349,7 +337,7 @@
 <Style id="KMA_hb24"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/G24.png</href></Icon></IconStyle></Style>
 <Style id="KMA_nb24"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/G24.png</href></Icon></IconStyle></Style>
 <styleUrl>#KMA_24</styleUrl>
-<Point><coordinates>122.699996948242,26,0</coordinates></Point>
+<Point><coordinates>122.900001525879,26.7999992370605,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -361,7 +349,7 @@
 <Style id="KMA_hb48"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/G48.png</href></Icon></IconStyle></Style>
 <Style id="KMA_nb48"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/G48.png</href></Icon></IconStyle></Style>
 <styleUrl>#KMA_48</styleUrl>
-<Point><coordinates>124.699996948242,29.6000003814697,0</coordinates></Point>
+<Point><coordinates>125.900001525879,30.3999996185303,0</coordinates></Point>
 </Placemark>
 <Placemark>
 <name></name>
@@ -373,7 +361,7 @@
 <Style id="KMA_hb72"><IconStyle><scale>0.6</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/G72.png</href></Icon></IconStyle></Style>
 <Style id="KMA_nb72"><IconStyle><scale>0.5</scale><Icon><href>https://dwfile1.ncdr.nat.gov.tw/disp/demo/icon/G72.png</href></Icon></IconStyle></Style>
 <styleUrl>#KMA_72</styleUrl>
-<Point><coordinates>130.5,32,0</coordinates></Point>
+<Point><coordinates>131,32,0</coordinates></Point>
 </Placemark>
 <Placemark><name>KMA</name>
 <Style id="KMAroute"><ListStyle></ListStyle>
@@ -383,7 +371,7 @@
 <styleUrl>#KMAroute</styleUrl>
 <LineString>
 <tessellate>1</tessellate>
-<coordinates>123.4,23.7,0 122.7,26,0 124.7,29.6,0 130.5,32,0 </coordinates>
+<coordinates>122.7,24.9,0 122.9,26.8,0 125.9,30.4,0 131,32,0 </coordinates>
 </LineString></Placemark></Folder>
 <ScreenOverlay>
 <name>Legend</name>
