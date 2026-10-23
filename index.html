@@ -112,7 +112,12 @@
 
   #timeline{left:50%;bottom:16px;transform:translateX(-50%);width:min(680px, 92vw);padding:10px 16px 12px;display:flex;flex-direction:column;gap:8px;}
   #timeline{transition:transform .28s ease,opacity .28s ease;}
-  #timeline.tl-hidden{transform:translate(-50%,150%);opacity:0;pointer-events:none;}
+  #timeline.tl-hidden{transform:translate(-50%,calc(100% + 16px));}
+  #tl-handle{position:absolute;left:50%;top:-19px;transform:translateX(-50%);width:64px;height:19px;padding:0;border:1px solid var(--panel-border);border-bottom:none;border-radius:9px 9px 0 0;background:rgba(18,26,30,0.92);color:#7fd3dc;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  #tl-handle:hover{background:rgba(30,42,48,0.96);}
+  #tl-handle:focus-visible{outline:2px solid var(--cone-amber);outline-offset:1px;}
+  #tl-handle svg{width:14px;height:14px;transition:transform .28s ease;}
+  #timeline.tl-hidden #tl-handle svg{transform:rotate(180deg);}
   @media (prefers-reduced-motion: reduce){ #timeline{transition:none;} }
   #timeline .tl-top{display:flex;align-items:center;gap:10px;}
   #timeline button.step{background:rgba(255,255,255,0.07);border:1px solid var(--panel-border);color:var(--signal-white);width:30px;height:30px;border-radius:7px;font-size:15px;cursor:pointer;flex:none;}
@@ -219,6 +224,7 @@
   </div>
 
   <div id="timeline" class="panel">
+    <button id="tl-handle" aria-label="收合播放列" aria-expanded="true" title="收合／展開播放列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg></button>
     <div class="tl-top">
       <button class="step" id="tl-play" title="自動連續播放">▶</button>
       <button class="step" id="tl-prev">‹</button>
@@ -1006,9 +1012,6 @@ const MULTI_ROUTE_URL = 'https://satis.ncdr.nat.gov.tw/kml/multityroute.aspx';
 // 由 GitHub Actions + Puppeteer 定時抓回來存在你 repo 的 KML（raw.githubusercontent.com 允許跨來源讀取）。
 // 填入形如 https://raw.githubusercontent.com/<帳號>/<repo>/main/data/multityroute.kml ；留空則跳過。
 const MULTI_ROUTE_DATA_URL = 'https://raw.githubusercontent.com/ray971029/ty-demo/main/data/multityroute.kml';
-// 即時連線全部失敗時的備援快照（2026/10/22 20 時發佈的資料，取自 NCDR 回傳的 KML，已精簡）。
-// 只是讓圖層至少有東西可看；顯示時會明確標示「快照」，不代表目前最新預報。
-const MULTI_ROUTE_SNAPSHOT = "<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:kml=\"http://www.opengis.net/kml/2.2\" xmlns:atom=\"http://www.w3.org/2005/Atom\"><Document><Folder><name>HKO</name><Placemark><name>HKO發佈時間:10/22 20</name><description>HKO發佈時間:10/22 20</description><styleUrl>#HKO_00</styleUrl><Point><coordinates>124.90,21.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#HKO_24</styleUrl><Point><coordinates>122.80,24.5,0</coordinates></Point></Placemark><Placemark><styleUrl>#HKO_48</styleUrl><Point><coordinates>124.09,28.39,0</coordinates></Point></Placemark><Placemark><styleUrl>#HKO_72</styleUrl><Point><coordinates>130.30,32.70,0</coordinates></Point></Placemark><Placemark><styleUrl>#HKO_96</styleUrl><Point><coordinates>144.19,35.5,0</coordinates></Point></Placemark><Placemark><name>HKO</name><Style id=\"HKOroute\"><LineStyle><color>FF2F00E6</color><width>4</width></LineStyle></Style><styleUrl>#HKOroute</styleUrl><LineString><coordinates>124.9,21.2,0 122.8,24.5,0 124.1,28.4,0 130.3,32.7,0 144.2,35.5,0 </coordinates></LineString></Placemark></Folder><Folder><name>JTWC</name><Placemark><name>JTWC發佈時間:10/22 20</name><description>JTWC發佈時間:10/22 20</description><styleUrl>#JTWC_00</styleUrl><Point><coordinates>124.90,21.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#JTWC_24</styleUrl><Point><coordinates>122.90,24.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#JTWC_48</styleUrl><Point><coordinates>124.59,28.79,0</coordinates></Point></Placemark><Placemark><styleUrl>#JTWC_72</styleUrl><Point><coordinates>130.5,32.0999984741211,0</coordinates></Point></Placemark><Placemark><styleUrl>#JTWC_96</styleUrl><Point><coordinates>137.89,32.90,0</coordinates></Point></Placemark><Placemark><name>JTWC</name><Style id=\"JTWCroute\"><LineStyle><color>FF0099F3</color><width>4</width></LineStyle></Style><styleUrl>#JTWCroute</styleUrl><LineString><coordinates>124.9,21.2,0 122.9,24.2,0 124.6,28.8,0 130.5,32.1,0 137.9,32.9,0 </coordinates></LineString></Placemark></Folder><Folder><name>JMA</name><Placemark><name>JMA發佈時間:10/22 20</name><description>JMA發佈時間:10/22 20</description><styleUrl>#JMA_00</styleUrl><Point><coordinates>124.90,21.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#JMA_24</styleUrl><Point><coordinates>122.40,24.5,0</coordinates></Point></Placemark><Placemark><styleUrl>#JMA_48</styleUrl><Point><coordinates>123.40,27.79,0</coordinates></Point></Placemark><Placemark><styleUrl>#JMA_72</styleUrl><Point><coordinates>127.30,31.79,0</coordinates></Point></Placemark><Placemark><styleUrl>#JMA_96</styleUrl><Point><coordinates>136.60,34.59,0</coordinates></Point></Placemark><Placemark><name>JMA</name><Style id=\"JMAroute\"><LineStyle><color>FFE9A700</color><width>4</width></LineStyle></Style><styleUrl>#JMAroute</styleUrl><LineString><coordinates>124.9,21.2,0 122.4,24.5,0 123.4,27.8,0 127.3,31.8,0 136.6,34.6,0 </coordinates></LineString></Placemark></Folder><Folder><name>NMC</name><Placemark><name>NMC發佈時間:10/21 11</name><description>NMC發佈時間:10/21 11</description><styleUrl>#NMC_00</styleUrl><Point><coordinates>129.60,18.29,0</coordinates></Point></Placemark><Placemark><styleUrl>#NMC_24</styleUrl><Point><coordinates>126,20.7000007629395,0</coordinates></Point></Placemark><Placemark><styleUrl>#NMC_48</styleUrl><Point><coordinates>123.80,23.60,0</coordinates></Point></Placemark><Placemark><styleUrl>#NMC_72</styleUrl><Point><coordinates>123.90,27.79,0</coordinates></Point></Placemark><Placemark><styleUrl>#NMC_96</styleUrl><Point><coordinates>128.69,32.29,0</coordinates></Point></Placemark><Placemark><styleUrl>#NMC_120</styleUrl><Point><coordinates>137,35.2999992370605,0</coordinates></Point></Placemark><Placemark><name>NMC</name><Style id=\"NMCroute\"><LineStyle><color>FF9955E7</color><width>4</width></LineStyle></Style><styleUrl>#NMCroute</styleUrl><LineString><coordinates>129.6,18.3,0 126,20.7,0 123.8,23.6,0 123.9,27.8,0 128.7,32.3,0 137,35.3,0 </coordinates></LineString></Placemark></Folder><Folder><name>CWA</name><Placemark><name>CWA發佈時間:10/22 20</name><description>CWA發佈時間:10/22 20</description><styleUrl>#CWA_00</styleUrl><Point><coordinates>124.90,21.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#CWA_24</styleUrl><Point><coordinates>122.80,24.39,0</coordinates></Point></Placemark><Placemark><styleUrl>#CWA_48</styleUrl><Point><coordinates>123.40,27.60,0</coordinates></Point></Placemark><Placemark><styleUrl>#CWA_72</styleUrl><Point><coordinates>127.19,31.70,0</coordinates></Point></Placemark><Placemark><styleUrl>#CWA_96</styleUrl><Point><coordinates>132.30,33.59,0</coordinates></Point></Placemark><Placemark><name>CWA</name><Style id=\"CWAroute\"><LineStyle><color>FFB8734F</color><width>4</width></LineStyle></Style><styleUrl>#CWAroute</styleUrl><LineString><coordinates>124.9,21.2,0 122.8,24.4,0 123.4,27.6,0 127.2,31.7,0 132.3,33.6,0 </coordinates></LineString></Placemark></Folder><Folder><name>KMA</name><Placemark><name>KMA發佈時間:10/22 20</name><description>KMA發佈時間:10/22 20</description><styleUrl>#KMA_00</styleUrl><Point><coordinates>124.90,21.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#KMA_24</styleUrl><Point><coordinates>122.69,24.5,0</coordinates></Point></Placemark><Placemark><styleUrl>#KMA_48</styleUrl><Point><coordinates>123.69,27.79,0</coordinates></Point></Placemark><Placemark><styleUrl>#KMA_72</styleUrl><Point><coordinates>128.10,31.20,0</coordinates></Point></Placemark><Placemark><styleUrl>#KMA_96</styleUrl><Point><coordinates>136.30,34.29,0</coordinates></Point></Placemark><Placemark><name>KMA</name><Style id=\"KMAroute\"><LineStyle><color>FF2FB763</color><width>4</width></LineStyle></Style><styleUrl>#KMAroute</styleUrl><LineString><coordinates>124.9,21.2,0 122.7,24.5,0 123.7,27.8,0 128.1,31.2,0 136.3,34.3,0 </coordinates></LineString></Placemark></Folder></Document></kml>";
 const multiRouteLayer = L.layerGroup();
 let multiRouteLoaded = false, multiRouteLoading = false;
 
@@ -1051,6 +1054,7 @@ function renderMultiRoute(kmlText0){
   const legendGroups = []; // {title, rows:[{name,color}]}
   let nLines = 0;
   function walk(node, folderName){
+    if (kmlText(node,'name') === 'CWA') return; // 氣象署路徑已經由主要預報圖層畫出，這裡不重複畫
     const placemarks = kmlKids(node,'Placemark');
     const lines = [], points = [];
     placemarks.forEach(pm=>{
@@ -1112,14 +1116,10 @@ async function loadMultiRoute(){
       }catch(e){ fails.push('自架資料：' + e.message); }
     }
     if (!txt) txt = await fetchKmlText(MULTI_ROUTE_URL, fails);
+    if (!txt) throw new Error('連線失敗 ｜ ' + fails.join(' ｜ '));
     multiRouteLayer.clearLayers();
-    if (txt){ renderMultiRoute(txt); multiRouteLoaded = true; }
-    else {
-      console.warn('多國路徑即時連線失敗：', fails);
-      renderMultiRoute(MULTI_ROUTE_SNAPSHOT);
-      lg.insertAdjacentHTML('afterbegin', '<div style="color:#ffb02e;margin-bottom:3px;">即時連線失敗，目前顯示 10/22 20 時的快照，不是最新預報（再開關一次圖層可重試）</div>');
-      lg.title = fails.join('\n');
-    }
+    renderMultiRoute(txt);
+    multiRouteLoaded = true;
   }catch(e){ console.warn(e); lg.textContent = '無法載入：' + e.message; }
   multiRouteLoading = false;
 }
@@ -1219,31 +1219,14 @@ function setupCollapse(panelId, bodyId, btnId){
   mapEl.addEventListener('pointercancel', e=>{ touches.delete(e.pointerId); if (e.pointerId===pid) cancel(); }, true);
 })();
 
-// ---------------------------------------------------------------------
-// 底部播放框像 YouTube：點一下地圖就收起，滑動（滑鼠移動／手指拖曳）或再點一下就回來
-// ---------------------------------------------------------------------
+// 底部播放框：上緣的小長條按鈕，按了往下收，收起後按鈕留在畫面底邊，再按就升回來
 (function(){
-  const tl = document.getElementById('timeline'), mapEl = map.getContainer();
-  let hiddenAt = 0, lx = null, ly = null;
-  const show = ()=>tl.classList.remove('tl-hidden');
-  map.on('click', ()=>{
-    if (mapEl.classList.contains('pen-mode')) return; // 畫筆模式下點擊是在畫畫，不收起
-    if (tl.classList.contains('tl-hidden')) show();
-    else { tl.classList.add('tl-hidden'); hiddenAt = Date.now(); }
+  const tl = document.getElementById('timeline'), h = document.getElementById('tl-handle');
+  h.addEventListener('click', ()=>{
+    const hide = !tl.classList.contains('tl-hidden');
+    tl.classList.toggle('tl-hidden', hide);
+    h.setAttribute('aria-expanded', !hide); h.setAttribute('aria-label', hide ? '展開播放列' : '收合播放列');
   });
-  // 滑鼠移動：剛收起 500ms 內與微小抖動不算，避免一點下去又馬上彈回來
-  mapEl.addEventListener('pointermove', e=>{
-    if (e.pointerType!=='mouse' || !tl.classList.contains('tl-hidden')) return;
-    if (lx===null){ lx=e.clientX; ly=e.clientY; return; }
-    if (Date.now()-hiddenAt < 500){ lx=e.clientX; ly=e.clientY; return; }
-    if (Math.hypot(e.clientX-lx, e.clientY-ly) > 6){ show(); }
-  });
-  mapEl.addEventListener('pointerdown', e=>{ lx=e.clientX; ly=e.clientY; });
-  // 手指拖曳或雙指縮放
-  mapEl.addEventListener('touchmove', ()=>{
-    if (!mapEl.classList.contains('pen-mode') && Date.now()-hiddenAt > 300) show();
-  }, {passive:true});
-  map.on('movestart zoomstart', ()=>{ if (Date.now()-hiddenAt > 300 && !mapEl.classList.contains('pen-mode')) show(); });
 })();
 
 setupCollapse('title-bar', 'title-collapsible', 'title-toggle');
