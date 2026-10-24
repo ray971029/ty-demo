@@ -464,15 +464,15 @@ function setTimeLabelText(text){
   }
   if (timeLabelTextEl) timeLabelTextEl.textContent = text;
 }
-const stormCircle7 = L.circle([0,0], {radius:1, color:'#e8462f', weight:1.4, fillColor:'#e8462f', fillOpacity:0.4});
-const stormCircle10 = L.circle([0,0], {radius:1, color:'#a855f7', weight:1.4, fillColor:'#a855f7', fillOpacity:0.4});
+const stormCircle7 = L.circle([0,0], {radius:1, color:'#e8462f', weight:1.4, fillColor:'#e8462f', fillOpacity:0.25});
+const stormCircle10 = L.circle([0,0], {radius:1, color:'#a855f7', weight:1.4, fillColor:'#a855f7', fillOpacity:0.25});
 stormLayer.addLayer(stormCircle7);
 stormLayer.addLayer(stormCircle10);
 // 固定的「現在（觀測）」暴風圈：半徑釘死在氣象署最後一次觀測的數值，
 // 不會跟著時間軸變動，只有捲到「現在」之後（預測時段）才顯示，方便
 // 跟移動中的預測暴風圈比較。這裡只畫圈本身，不掛標記圖示或文字標籤。
-const nowStormCircle7 = L.circle([0,0], {radius:1, color:'#e8462f', weight:1.4, fillColor:'#e8462f', fillOpacity:0.4});
-const nowStormCircle10 = L.circle([0,0], {radius:1, color:'#a855f7', weight:1.4, fillColor:'#a855f7', fillOpacity:0.4});
+const nowStormCircle7 = L.circle([0,0], {radius:1, color:'#e8462f', weight:1.4, fill:false});
+const nowStormCircle10 = L.circle([0,0], {radius:1, color:'#a855f7', weight:1.4, fill:false});
 
 function drawGrid(){
   gridLayer.clearLayers();
@@ -1078,13 +1078,13 @@ function renderMultiRoute(kmlText0){
     const colorOf = {};
     lines.forEach(l=>{ if (l.latlngs.length>1){
       colorOf[l.name] = l.color;
-      L.polyline(l.latlngs, { color:l.color, weight:Math.min(l.width,4), opacity:Math.max(l.opacity,0.6), interactive:true }).bindTooltip((folderName?folderName+' ':'')+l.name, {sticky:true}).addTo(multiRouteLayer);
+      L.polyline(l.latlngs, { color:l.color, weight:2.6, opacity:0.95, interactive:true }).bindTooltip((folderName?folderName+' ':'')+l.name, {sticky:true}).addTo(multiRouteLayer);
       nLines++;
     }});
     points.forEach(pp=>{
       const color = colorOf[pp.agency] || colorOf[pp.name] || '#ffffff';
       const label = (pp.agency||'') + (pp.hour!=null ? (pp.hour===0 ? ' 起報點' : ' +'+pp.hour+'h') : '') + (pp.desc ? '\n'+pp.desc : '');
-      L.circleMarker(pp.ll, { radius:3.6, color:'#081420', weight:1, fillColor:color, fillOpacity:1 })
+      L.circleMarker(pp.ll, { radius:3.2, color:'#081420', weight:1, fillColor:color, fillOpacity:1 })
         .bindTooltip(label.replace(/\n/g,'<br>'), {sticky:true}).addTo(multiRouteLayer);
     });
     if (lines.length) legendGroups.push({ title: folderName, rows: lines.filter(l=>l.latlngs.length>1).map(l=>({name:l.name,color:l.color})) });
